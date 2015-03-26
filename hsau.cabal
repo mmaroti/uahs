@@ -16,9 +16,9 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Test
+  exposed-modules:     UnivAlg.Shape
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.6 && <4.7
-  -- hs-source-dirs:
+  hs-source-dirs:      src
   default-language:    Haskell2010
