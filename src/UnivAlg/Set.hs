@@ -1,31 +1,38 @@
 {-# LANGUAGE Rank2Types #-}
 
-module UnivAlg.Set (BoolFun(..), SetTerm(..), shape, member, member2, BoolFun2(..), elements) where
+module UnivAlg.Set (Set) where
 
 import qualified UnivAlg.Boolean as Boolean
-import qualified UnivAlg.Array as Array
 import qualified Data.Vector as Vector
-import Control.Exception (assert)
+--import Control.Exception (assert)
 
-data SetTerm
-	= BoolSet
-	| ProductSet SetTerm SetTerm
-	| SubSet SetTerm BoolFun
-	| PowerSet Int SetTerm
+data Set
+	= SetBool
+	| SetPower Set Int
+	| SetSub Set BoolPred
 
-instance Show SetTerm where
-	show BoolSet = "BoolSet"
-	show (ProductSet t1 t2) = "ProductSet (" ++ show t1 ++ ") (" ++ show t2 ++ ")"
-	show (SubSet t _) = "SubSet (" ++ show t ++ ")"
-	show (PowerSet n t) = "PowerSet " ++ show n ++ "(" ++ show t ++ ")"
+instance Show Set where
+	show SetBool = "SetBool"
+	show (SetPower t n) = "SetPower " ++ "(" ++ show t ++ ")" ++ show n
+	show (SetSub t _) = "SetSub (" ++ show t ++ ")"
 
+data Shape
+	= ShapeOne
+	| ShapePower Shape Int
+	deriving (Eq, Show)
+
+data Array a = Array Shape (Vector.Vector a)
+
+newtype BoolPred = BoolPred (Boolean.Boolean b => Array b -> b)
+
+--member :: SetTerm -> BoolFun
+
+
+{-
 shape :: SetTerm -> Array.Shape
 shape BoolSet = Array.ShapeOne
-shape (ProductSet t1 t2) = Array.ShapeSum (shape t1) (shape t2)
+shape (PowerSet t n) = Array.ShapeProd n (shape t)
 shape (SubSet t _) = shape t
-shape (PowerSet n t) = Array.ShapeProd n (shape t)
-
-newtype BoolFun = BoolFun (Boolean.Boolean b => Array.Array b -> b)
 
 member :: SetTerm -> BoolFun
 member BoolSet = BoolFun (const Boolean.true)
@@ -35,8 +42,7 @@ member _ = undefined
 
 elemSize :: SetTerm -> Int
 elemSize BoolSet = 1
-elemSize (ProductSet s1 s2) = (elemSize s1) + (elemSize s2)
-elemSize (PowerSet n s) = n * (elemSize s)
+elemSize (PowerSet s n) = n * (elemSize s)
 elemSize (SubSet s _) = elemSize s
 
 newtype BoolFun2 = BoolFun2 (Boolean.Boolean b => Vector.Vector b -> b)
@@ -49,3 +55,5 @@ member2 _ = undefined
 elements :: SetTerm -> [Array.Array Bool]
 elements BoolSet = []
 elements _ = undefined
+
+-}
