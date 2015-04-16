@@ -1,40 +1,26 @@
 
-module UnivAlg.Array (Array, generate, index) where
+module UnivAlg.Array (Array, length, generate, index, scalar, vector) where
 
+import qualified UnivAlg.Shape as Shape
 import qualified Data.Vector as Vector
 import Prelude hiding (length)
-import Control.Exception (assert)
+import qualified Prelude
+--import Control.Exception (assert)
 
-data Array a = Array [(Int,Int)] (Vector.Vector a)
+data Array a = Array Shape.Shape (Vector.Vector a)
 	deriving (Show, Eq)
 
-type Shape = [(Int,Int)]
+length :: Array a -> Int
+length (Array s _) = Shape.size s
 
-size :: Shape -> Int
-size [] = 1
-size ((a,b):_) = a * b
-
-shape :: [Int] -> Shape
-shape [] = []
-shape (a:as) = let
-	bs = shape as
-	in (a,size bs) : bs
-
-fromPos :: Shape -> Int -> [Int]
-fromPos [] i = assert (i == 0) []
-fromPos ((a,b):cs) i = let
-	(j,k) = divMod i b
-	in assert (0 <= j && j < a) j : fromPos cs k
-
-toPos :: Shape -> [Int] -> Int
-toPos [] [] = 0
-toPos ((a,b):cs) (d:ds) = assert (0 <= d && d < a) (d * b) + toPos cs ds
-toPos _ _ = error "incorrect index"
-
-generate :: [Int] -> ([Int] -> a) -> Array a
-generate as f = let
-	bs = shape as
-	in Array bs (Vector.generate (size bs) (f . fromPos bs))
+generate :: Shape.Shape -> ([Int] -> a) -> Array a
+generate s f = Array s (Vector.generate (Shape.size s) (f . (Shape.coords s)))
 
 index :: Array a -> [Int] -> a
-index (Array as v) bs = (Vector.!) v (toPos as bs)
+index (Array s v) xs = (Vector.!) v (Shape.index s xs)
+
+scalar :: a -> Array a
+scalar a = Array Shape.Scalar (Vector.singleton a)
+
+vector :: [a] -> Array a
+vector as = Array (Shape.Vector (Prelude.length as) Shape.Scalar) (Vector.fromList as)
