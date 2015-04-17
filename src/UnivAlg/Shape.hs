@@ -6,13 +6,13 @@ import Control.Exception (assert)
 
 data Shape
 	= Scalar
-	| Vector Int Shape
+	| Stack Int Shape
 	| Concat [Shape]
 	deriving (Show, Eq)
 
 size :: Shape -> Int
 size Scalar = 1
-size (Vector n s) = n * size s
+size (Stack n s) = n * size s
 size (Concat ss) = sum (map size ss)
 
 sumlist :: Int -> [Int] -> [Int]
@@ -23,7 +23,7 @@ index :: Shape -> [Int] -> Int
 index Scalar = \xs -> case xs of
 	[] -> 0
 	_ : _ -> error "too many coords"
-index (Vector n s) =
+index (Stack n s) =
 	let
 		k = size s
 		f = index s
@@ -41,7 +41,7 @@ index (Concat ss) =
 
 coords :: Shape -> Int -> [Int]
 coords Scalar = \k -> assert (k == 0) []
-coords (Vector n s) =
+coords (Stack n s) =
 	let
 		m = size s
 		f = coords s
