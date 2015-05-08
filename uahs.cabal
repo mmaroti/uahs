@@ -23,7 +23,6 @@ library
   default-language:	Haskell2010
   ghc-options:		-Wall
   exposed-modules:
---    UnivAlg.Set
-    UnivAlg.Boolean
-    UnivAlg.Shape
     UnivAlg.Array
+    UnivAlg.Boolean
+    UnivAlg.Semiring
