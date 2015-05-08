@@ -1,5 +1,6 @@
 module UnivAlg.Array2 where
 
+import qualified UnivAlg.Semiring as Semiring
 import qualified Data.Vector as Vector
 import Control.Exception (assert)
 
@@ -73,6 +74,16 @@ stack' ns as =
 instance Functor Array where
 	fmap f (Array ns v) = Array ns (fmap f v)
 
+projection :: Semiring.Semiring a => [Int] -> Int -> Array a
+projection ns i =
+	let	k = ns !! i
+		l = product (drop i ns)
+		ms = ns ++ [k]
+		f = \x -> (x `div` l) `mod` k
+		g = \x -> x `mod` k
+		h = \x -> if (f x) == (g x) then Semiring.one else Semiring.zero
+	in Array ms (Vector.generate (product ms) h)
+
 collate :: (a -> a -> a) -> Array a -> Array a -> Array a
 collate f (Array ns v) (Array ms w) =
 	let	k = product (tail ms)
@@ -88,10 +99,3 @@ compose f g a b = collapse g (dim a - 1) (collate f a b)
 
 multiply :: Num a => Array a -> Array a -> Array a
 multiply a b = compose (*) (+) a b
-
-{-
---multiply :: Array a -> Array a -> Array a
---multiply (Array [] _) _ = error "scalar multiplication"
---multiply (Array [a] v) _ = undefined
---multiply (Array [a:as] v) b = stack (map (slice
--}
