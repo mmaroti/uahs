@@ -74,8 +74,8 @@ stack' ns as =
 instance Functor Array where
 	fmap f (Array ns v) = Array ns (fmap f v)
 
-projection :: Semiring.Semiring a => [Int] -> Int -> Array a
-projection ns i =
+proj :: Semiring.Semiring a => [Int] -> Int -> Array a
+proj ns i =
 	let	k = ns !! i
 		l = product (drop i ns)
 		ms = ns ++ [k]
@@ -83,6 +83,8 @@ projection ns i =
 		g = \x -> x `mod` k
 		h = \x -> if (f x) == (g x) then Semiring.one else Semiring.zero
 	in Array ms (Vector.generate (product ms) h)
+
+--plus :: Semiring.Semiring a => Array a -> Array a -> Array a
 
 collate :: (a -> a -> a) -> Array a -> Array a -> Array a
 collate f (Array ns v) (Array ms w) =
