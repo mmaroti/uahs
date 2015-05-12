@@ -1,6 +1,6 @@
-module UnivAlg.Array where
+module UnivAlg.Array (Array, shape, dim, size, index, slice, generate, array, scalar, vector, matrix, stack, stack') where
 
-import qualified UnivAlg.Semiring as Semiring
+--import qualified UnivAlg.Semiring as Semiring
 import qualified Data.Vector as Vector
 import Control.Exception (assert)
 
@@ -38,7 +38,7 @@ size (Array ns v) =
 	in assert (Vector.length v == m) m
 
 index :: Array a -> [Int] -> a
-index (Array ns v) xs = (Vector.!) v (coord2pos ns xs)
+index (Array ns v) = (Vector.!) v . coord2pos ns
 
 slice :: Array a -> Int -> Array a
 slice (Array [] _) = error "cannot slice a scalar"
@@ -73,24 +73,15 @@ stack' ns as =
 
 instance Functor Array where
 	fmap f (Array ns v) = Array ns (fmap f v)
-
-proj :: Semiring.Semiring a => [Int] -> Int -> Array a
-proj ns i =
-	let	k = ns !! i
-		l = product (drop i ns)
-		ms = ns ++ [k]
-		f = \x -> (x `div` l) `mod` k
-		g = \x -> x `mod` k
-		h = \x -> if (f x) == (g x) then Semiring.one else Semiring.zero
-	in Array ms (Vector.generate (product ms) h)
+{-
 
 --plus :: Semiring.Semiring a => Array a -> Array a -> Array a
 
 collate :: (a -> a -> a) -> Array a -> Array a -> Array a
 collate f (Array ns v) (Array ms w) =
 	let	k = product (tail ms)
-		l = (head ms) * k
-		g = \i -> f ((Vector.!) v (div i k)) ((Vector.!) w (mod i l))
+		l = k * head ms
+		g i = f ((Vector.!) v (div i k)) ((Vector.!) w (mod i l))
 	in assert (last ns == head ms) Array (ns ++ tail ms) (Vector.generate (product ns * k) g)
 
 collapse :: (a -> a -> a) -> Int -> Array a -> Array a
@@ -100,4 +91,5 @@ compose :: (a -> a -> a) -> (a -> a -> a) -> Array a -> Array a -> Array a
 compose f g a b = collapse g (dim a - 1) (collate f a b)
 
 multiply :: Num a => Array a -> Array a -> Array a
-multiply a b = compose (*) (+) a b
+multiply = compose (*) (+)
+-}
