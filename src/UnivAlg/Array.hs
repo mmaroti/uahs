@@ -1,4 +1,4 @@
-module UnivAlg.Array (Array, shape, dim, size, index, slice, generate, array, scalar, vector, matrix, stack, stack') where
+module UnivAlg.Array (Array, shape, dim, size, index, slice, generate, array, scalar, vector, matrix, stack, stack', compose, collate) where
 
 --import qualified UnivAlg.Semiring as Semiring
 import qualified UnivAlg.Index as Index
@@ -55,6 +55,22 @@ stack' ns as =
 
 instance Functor Array where
 	fmap f (Array ns v) = Array ns (fmap f v)
+
+compose :: (a -> a -> a) -> [Int] -> [(Array a, [Int])] -> Array a
+compose f ns cs =
+	let	make :: (Array a, [Int]) -> [Int] -> a
+		make (a, d) =
+			let m = Index.create ns d
+			in assert (Index.codomain m == shape a)
+				index a . Index.apply m
+		(g : gs) = fmap make cs
+		comb a [] _ = a
+		comb a (h : hs) xs = comb (f a (h xs)) hs xs
+	in generate ns (\xs -> comb (g xs) gs xs)
+
+collate :: (a -> a -> a) -> Array a -> [Int] -> Array a
+collate = undefined
+
 {-
 
 --plus :: Semiring.Semiring a => Array a -> Array a -> Array a

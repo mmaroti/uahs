@@ -2,6 +2,8 @@ module UnivAlg.Index (decode, encode, Map, create, identity, domain, codomain, c
 
 import Control.Exception (assert)
 
+-- WARNING: we need to reverse the indexing order to match with Array slice/concat
+
 decode :: [Int] -> Int -> [Int]
 decode [] n = assert (n == 0) []
 decode (d : ds) n =
