@@ -1,30 +1,12 @@
 module UnivAlg.Array (Array, shape, dim, size, index, slice, generate, array, scalar, vector, matrix, stack, stack') where
 
 --import qualified UnivAlg.Semiring as Semiring
+import qualified UnivAlg.Index as Index
 import qualified Data.Vector as Vector
 import Control.Exception (assert)
 
 data Array a = Array [Int] (Vector.Vector a)
 	deriving (Show, Eq)
-
-coord2pos :: [Int] -> [Int] -> Int
-coord2pos [] =
-	\xs -> case xs of
-		[] -> 0
-		_ -> error "too many coordinates"
-coord2pos (n : ns) =
-	let	m = product ns
-		f = coord2pos ns
-	in \xs -> case xs of
-		(y : ys) -> assert (0 <= y && y < n) y * m + f ys
-		_ -> error "too few coordinates"
-
-pos2coord :: [Int] -> Int -> [Int]
-pos2coord [] = \k -> assert (k == 0) []
-pos2coord (n : ns) =
-	let	m = product ns
-		f = pos2coord ns
-	in \k -> let (i, j) = divMod k m in assert (0 <= i && i < n) i : f j
 
 shape :: Array a -> [Int]
 shape (Array ns _) = ns
@@ -38,7 +20,7 @@ size (Array ns v) =
 	in assert (Vector.length v == m) m
 
 index :: Array a -> [Int] -> a
-index (Array ns v) = (Vector.!) v . coord2pos ns
+index (Array ns v) = (Vector.!) v . Index.encode ns
 
 slice :: Array a -> Int -> Array a
 slice (Array [] _) = error "cannot slice a scalar"
@@ -46,7 +28,7 @@ slice (Array (n : ns) v) = let m = product ns in
 	\i -> assert (0 <= i && i < n) Array ns (Vector.slice (i * m) m v)
 
 generate :: [Int] -> ([Int] -> a) -> Array a
-generate ns f = Array ns (Vector.generate (product ns) (f . pos2coord ns))
+generate ns f = Array ns (Vector.generate (product ns) (f . Index.decode ns))
 
 array :: [Int] -> [a] -> Array a
 array ns as =
