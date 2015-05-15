@@ -35,12 +35,12 @@ domain :: Map -> [Int]
 domain (MakeMap ds _) = ds
 
 codomain :: Map -> [Int]
-codomain (MakeMap ds ms) = fmap (\i -> ds !! i) ms
+codomain (MakeMap ds ms) = fmap (ds !!) ms
 
 compose :: Map -> Map -> Map
 compose (MakeMap d1 m1) (MakeMap d2 m2) =
-	let	c1 = fmap (\i -> d1 !! i) m1
-		c3 = fmap (\i -> m1 !! i) m2
+	let	c1 = fmap (d1 !!) m1
+		c3 = fmap (m1 !!) m2
 	in assert (c1 == d2) MakeMap d1 c3
 
 verify :: [Int] -> [Int] -> Bool
@@ -50,4 +50,4 @@ verify _ _ = False
 
 apply :: Map -> [Int] -> [Int]
 apply (MakeMap ds ms) xs = assert (verify ds xs)
-	fmap (\i -> xs !! i) ms
+	fmap (xs !!) ms
