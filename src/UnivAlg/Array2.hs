@@ -1,11 +1,12 @@
 module UnivAlg.Array2 (shape, dim, size, index, indexM, generate, generateM,
-	fmapM, constant, scalar, vector, extend, entrywise, entrywiseM, compose) where
+	fmapM, constant, scalar, vector, extend, entrywise, entrywiseM,
+	collect, collectM) where
 
-import qualified UnivAlg.Semiring as Semiring
+-- import qualified UnivAlg.Semiring as Semiring
 import qualified Data.Vector as Vector
 import Control.Exception (assert)
 import Control.Applicative (Applicative, pure, (<*>))
-import Control.Monad (liftM, (<=<))
+import Control.Monad (liftM, (<=<), foldM)
 
 data Array a = MakeArray [(Int,Int)] (Vector.Vector a)
 	deriving (Show, Eq)
@@ -54,12 +55,6 @@ scalar a = MakeArray [] (Vector.singleton a)
 vector :: [a] -> Array a
 vector as = MakeArray [(1, length as)] (Vector.fromList as)
 
-extend :: [Int] -> Array a -> [Int] -> Array a
-extend bs (MakeArray cs v) ns = assert (length cs == length ns) MakeArray ds v where
-	g x = (0, x)
-	upd (a1, b1) (a2, b2) = assert (b1 == b2) (a1 + a2, b1)
-	ds = Vector.toList $ Vector.accum upd (Vector.fromList $ map g bs) (zip ns cs)
-
 instance Functor Array where
 	fmap f a = generate (f . index a) (shape a)
 
@@ -82,9 +77,27 @@ instance Applicative Array where
 	pure = scalar
 	(<*>) = entrywise ($)
 
-compose :: Semiring.Semiring a => [Int] -> [(Array a, [Int])] -> Array a
-compose s xs =
-	let f a (x,y) = entrywise Semiring.prod (extend s x y) a
-	in foldl f (constant Semiring.one s) xs
+extend :: [Int] -> (Array a, [Int]) -> Array a
+extend bs (MakeArray cs v, ns) = assert (length cs == length ns) MakeArray ds v where
+	g x = (0, x)
+	upd (a1, b1) (a2, b2) = assert (b1 == b2) (a1 + a2, b1)
+	ds = Vector.toList $ Vector.accum upd (Vector.fromList $ map g bs) (zip ns cs)
 
--- project :: Semiring.Semiring a => Array a -> [Int] -> Array a
+collect :: (a -> a -> a) -> Int -> Array a -> Array a
+collect f n a =
+	let	(bs, cs) = assert (n <= dim a) (splitAt n $ shape a)
+		zs = fmap (inv bs) [0 .. (product bs - 1)]
+		g ys = foldl1 f $ fmap (\xs -> index a (xs ++ ys)) zs
+	in generate g cs
+
+foldM1 :: Monad m => (a -> a -> m a) -> [a] -> m a
+foldM1 _ [a] = return a
+foldM1 f (a : as) = foldM f a as
+foldM1 _ [] = undefined
+
+collectM :: Monad m => (a -> a -> m a) -> Int -> Array a -> m (Array a)
+collectM f n a =
+	let	(bs, cs) = assert (n <= dim a) (splitAt n $ shape a)
+		zs = fmap (inv bs) [0 .. (product bs - 1)]
+		g ys = foldM1 f =<< mapM (\xs -> indexM a (xs ++ ys)) zs
+	in generateM g cs
