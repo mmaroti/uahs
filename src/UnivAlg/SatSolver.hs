@@ -1,6 +1,6 @@
 module UnivAlg.SatSolver (Literal, Instance, literal, clause, true, false,
 	not, or, and, leq, equ, add, xor, assert, assertequ, assertleq,
-	generate, clauses, literals) where
+	generate, clauses, literals, continue) where
 
 import Prelude hiding (not, or, and)
 import Control.Monad.State (State, state, execState)
@@ -101,3 +101,6 @@ literals (MakeInst ls _) = ls
 
 clauses :: Instance -> [[Int]]
 clauses (MakeInst _ cs) = cs
+
+continue :: Instance -> State Instance () -> Instance
+continue i p = execState p i

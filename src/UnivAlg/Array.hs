@@ -1,6 +1,6 @@
 module UnivAlg.Array (shape, dim, size, index, indexM, generate, generateM,
-	fmapM, constant, scalar, vector, extend, entrywise, entrywiseM,
-	collect, collectM) where
+	fmapM, constant, constantM, scalar, vector, extend, entrywise,
+	entrywiseM, collect, collectM) where
 
 -- import qualified UnivAlg.Semiring as Semiring
 import qualified Data.Vector as Vector
@@ -47,6 +47,10 @@ generateM f bs = (liftM $ MakeArray (gen 1 bs)) (Vector.generateM (product bs) (
 
 constant :: a -> [Int] -> Array a
 constant a bs = MakeArray (map g bs) (Vector.singleton a) where
+	g x = (0, x)
+
+constantM :: Monad m => m a -> [Int] -> m (Array a)
+constantM a bs = (liftM $ MakeArray (map g bs)) (Vector.generateM (product bs) (\_ -> a)) where
 	g x = (0, x)
 
 scalar :: a -> Array a
