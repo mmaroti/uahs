@@ -1,93 +1,103 @@
-module UnivAlg.Array (Array, shape, dim, size, index, slice, generate, array, scalar, vector, matrix, stack, stack', compose, collate) where
+module UnivAlg.Array (shape, dim, size, index, indexM, generate, generateM,
+	fmapM, constant, scalar, vector, extend, entrywise, entrywiseM,
+	collect, collectM) where
 
---import qualified UnivAlg.Semiring as Semiring
-import qualified UnivAlg.Index as Index
+-- import qualified UnivAlg.Semiring as Semiring
 import qualified Data.Vector as Vector
 import Control.Exception (assert)
+import Control.Applicative (Applicative, pure, (<*>))
+import Control.Monad (liftM, (<=<), foldM)
 
-data Array a = Array [Int] (Vector.Vector a)
+data Array a = MakeArray [(Int,Int)] (Vector.Vector a)
 	deriving (Show, Eq)
 
 shape :: Array a -> [Int]
-shape (Array ns _) = ns
+shape (MakeArray ds _) = map snd ds
 
 dim :: Array a -> Int
-dim = length . shape
+dim (MakeArray ds _) = length ds
 
 size :: Array a -> Int
-size (Array ns v) =
-	let m = product ns
-	in assert (Vector.length v == m) m
+size = product . shape
+
+idx :: [(Int, Int)] -> [Int] -> Int
+idx [] [] = 0
+idx ((a, b) : as) (x : xs) = assert (0 <= x && x < b) a * x + idx as xs
+idx _ _ = undefined
 
 index :: Array a -> [Int] -> a
-index (Array ns v) = (Vector.!) v . Index.encode ns
+index (MakeArray cs v) = (Vector.!) v . idx cs
 
-slice :: Array a -> Int -> Array a
-slice (Array [] _) = error "cannot slice a scalar"
-slice (Array (n : ns) v) = let m = product ns in
-	\i -> assert (0 <= i && i < n) Array ns (Vector.slice (i * m) m v)
+indexM :: Monad m => Array a -> [Int] -> m a
+indexM (MakeArray cs v) = Vector.indexM v . idx cs
 
-generate :: [Int] -> ([Int] -> a) -> Array a
-generate ns f = Array ns (Vector.generate (product ns) (f . Index.decode ns))
+gen :: Int -> [Int] -> [(Int, Int)]
+gen _ [] = []
+gen a (x : xs) = (a, x) : gen (a * x) xs
 
-array :: [Int] -> [a] -> Array a
-array ns as =
-	let v = Vector.fromList as
-	in assert (product ns == Vector.length v) Array ns v
+inv :: [Int] -> Int -> [Int]
+inv [] n = assert (n == 0) []
+inv (x : xs) n = let (m, k) = divMod n x in k : inv xs m
+
+generate :: ([Int] -> a) -> [Int] -> Array a
+generate f bs = MakeArray (gen 1 bs) (Vector.generate (product bs) (f . inv bs))
+
+generateM :: Monad m => ([Int] -> m a) -> [Int] -> m (Array a)
+generateM f bs = (liftM $ MakeArray (gen 1 bs)) (Vector.generateM (product bs) (f . inv bs))
+
+constant :: a -> [Int] -> Array a
+constant a bs = MakeArray (map g bs) (Vector.singleton a) where
+	g x = (0, x)
 
 scalar :: a -> Array a
-scalar a = Array [] (Vector.singleton a)
+scalar a = MakeArray [] (Vector.singleton a)
 
 vector :: [a] -> Array a
-vector as = Array [length as] (Vector.fromList as)
-
-matrix :: [[a]] -> Array a
-matrix as = stack (map vector as)
-
-stack :: [Array a] -> Array a
-stack [] = error "cannot stack an empty list"
-stack as@(b : _) = stack' (shape b) as
-
-stack' :: [Int] -> [Array a] -> Array a
-stack' ns as =
-	let vs = map (\(Array ms w) -> assert (ms == ns) w) as
-	in Array (length vs : ns) (Vector.concat vs)
+vector as = MakeArray [(1, length as)] (Vector.fromList as)
 
 instance Functor Array where
-	fmap f (Array ns v) = Array ns (fmap f v)
+	fmap f a = generate (f . index a) (shape a)
 
-compose :: (a -> a -> a) -> [Int] -> [(Array a, [Int])] -> Array a
-compose f ns cs =
-	let	make :: (Array a, [Int]) -> [Int] -> a
-		make (a, d) =
-			let m = Index.create ns d
-			in assert (Index.codomain m == shape a)
-				index a . Index.apply m
-		(g : gs) = fmap make cs
-		comb a [] _ = a
-		comb a (h : hs) xs = comb (f a (h xs)) hs xs
-	in generate ns (\xs -> comb (g xs) gs xs)
+fmapM :: Monad m => (a -> m b) -> Array a -> m (Array b)
+fmapM f a = generateM (f <=< indexM a) (shape a)
 
-collate :: (a -> a -> a) -> Array a -> [Int] -> Array a
-collate = undefined
+entrywise :: (a -> b -> c) -> Array a -> Array b -> Array c
+entrywise f a b = assert (shape a == shape b) generate g3 (shape a) where
+	g1 = index a
+	g2 = index b
+	g3 xs = f (g1 xs) (g2 xs)
 
-{-
+entrywiseM :: Monad m => (a -> b -> m c) -> Array a -> Array b -> m (Array c)
+entrywiseM f a b = assert (shape a == shape b) generateM g3 (shape a) where
+	g1 = indexM a
+	g2 = indexM b
+	g3 xs = (f =<< g1 xs) =<< g2 xs
 
---plus :: Semiring.Semiring a => Array a -> Array a -> Array a
+instance Applicative Array where
+	pure = scalar
+	(<*>) = entrywise ($)
 
-collate :: (a -> a -> a) -> Array a -> Array a -> Array a
-collate f (Array ns v) (Array ms w) =
-	let	k = product (tail ms)
-		l = k * head ms
-		g i = f ((Vector.!) v (div i k)) ((Vector.!) w (mod i l))
-	in assert (last ns == head ms) Array (ns ++ tail ms) (Vector.generate (product ns * k) g)
+extend :: [Int] -> (Array a, [Int]) -> Array a
+extend bs (MakeArray cs v, ns) = assert (length cs == length ns) MakeArray ds v where
+	g x = (0, x)
+	upd (a1, b1) (a2, b2) = assert (b1 == b2) (a1 + a2, b1)
+	ds = Vector.toList $ Vector.accum upd (Vector.fromList $ map g bs) (zip ns cs)
 
-collapse :: (a -> a -> a) -> Int -> Array a -> Array a
-collapse = undefined
+collect :: (a -> a -> a) -> Int -> Array a -> Array a
+collect f n a =
+	let	(bs, cs) = assert (n <= dim a) (splitAt n $ shape a)
+		zs = fmap (inv bs) [0 .. (product bs - 1)]
+		g ys = foldl1 f $ fmap (\xs -> index a (xs ++ ys)) zs
+	in generate g cs
 
-compose :: (a -> a -> a) -> (a -> a -> a) -> Array a -> Array a -> Array a
-compose f g a b = collapse g (dim a - 1) (collate f a b)
+foldM1 :: Monad m => (a -> a -> m a) -> [a] -> m a
+foldM1 _ [a] = return a
+foldM1 f (a : as) = foldM f a as
+foldM1 _ [] = undefined
 
-multiply :: Num a => Array a -> Array a -> Array a
-multiply = compose (*) (+)
--}
+collectM :: Monad m => (a -> a -> m a) -> Int -> Array a -> m (Array a)
+collectM f n a =
+	let	(bs, cs) = assert (n <= dim a) (splitAt n $ shape a)
+		zs = fmap (inv bs) [0 .. (product bs - 1)]
+		g ys = foldM1 f =<< mapM (\xs -> indexM a (xs ++ ys)) zs
+	in generateM g cs

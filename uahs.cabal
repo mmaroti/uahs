@@ -26,3 +26,4 @@ library
     UnivAlg.Array
     UnivAlg.Boolean
     UnivAlg.Semiring
+    UnivAlg.SatSolver
