@@ -1,8 +1,11 @@
-module UnivAlg.SatBuilder where
+module UnivAlg.SatSolver (Literal, Instance, literal, clause, true, false,
+	not, or, and, leq, equ, add, xor, assert, assertequ, assertleq,
+	generate, clauses, literals) where
 
 import Prelude hiding (not, or, and)
 import Control.Monad.State (State, state, execState)
 import Control.Monad (liftM)
+-- import qualified Picosat
 
 type Literal = Int
 data Instance = MakeInst Int [[Int]]
@@ -92,3 +95,9 @@ assertleq a b = clause [not a, b]
 
 generate :: State Instance () -> Instance
 generate p = execState p (MakeInst 1 [[1]])
+
+literals :: Instance -> Int
+literals (MakeInst ls _) = ls
+
+clauses :: Instance -> [[Int]]
+clauses (MakeInst _ cs) = cs
