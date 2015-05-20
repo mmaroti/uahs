@@ -50,7 +50,7 @@ constant a bs = MakeArray (map g bs) (Vector.singleton a) where
 	g x = (0, x)
 
 constantM :: Monad m => m a -> [Int] -> m (Array a)
-constantM a bs = (liftM $ MakeArray (map g bs)) (Vector.generateM (product bs) (\_ -> a)) where
+constantM a bs = (liftM $ MakeArray (map g bs)) (Vector.generateM (product bs) (const a)) where
 	g x = (0, x)
 
 scalar :: a -> Array a

@@ -37,5 +37,5 @@ instance Boolean Prelude.Bool where
 instance Boolean Prelude.Float where
 	true = 1.0
 	false = 0.0
-	not x = (Prelude.-) 1.0 x
+	not = (Prelude.-) 1.0
 	x && y = (Prelude.*) x y

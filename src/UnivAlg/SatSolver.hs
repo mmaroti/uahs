@@ -1,11 +1,13 @@
 module UnivAlg.SatSolver (Literal, Instance, literal, clause, true, false,
 	not, or, and, leq, equ, add, xor, assert, assertequ, assertleq,
-	generate, clauses, literals, continue) where
+	empty, generate, clauses, literals, solve) where
 
 import Prelude hiding (not, or, and)
 import Control.Monad.State (State, state, execState)
 import Control.Monad (liftM)
--- import qualified Picosat
+import qualified Control.Exception as Exception
+import qualified Picosat
+import qualified Data.Set as Set
 
 type Literal = Int
 data Instance = MakeInst Int [[Int]]
@@ -93,8 +95,11 @@ assertequ a b = do
 assertleq :: Literal -> Literal -> State Instance ()
 assertleq a b = clause [not a, b]
 
-generate :: State Instance () -> Instance
-generate p = execState p (MakeInst 1 [[1]])
+empty :: Instance
+empty = MakeInst 1 [[1]]
+
+generate :: Instance -> State Instance a -> Instance
+generate i p = execState p i
 
 literals :: Instance -> Int
 literals (MakeInst ls _) = ls
@@ -102,5 +107,15 @@ literals (MakeInst ls _) = ls
 clauses :: Instance -> [[Int]]
 clauses (MakeInst _ cs) = cs
 
-continue :: Instance -> State Instance () -> Instance
-continue i p = execState p i
+answer :: [Int] -> Int -> Bool
+answer as =
+	let	a = Set.fromList as
+		f x = let y = Set.member x a in Exception.assert (y || Set.member (-x ) a) y
+	in f
+
+solve :: Instance -> Maybe (Literal -> Bool)
+solve i =
+	case Picosat.unsafeSolve (clauses i) of
+		Picosat.Solution as -> Just $ answer as
+		Picosat.Unsatisfiable -> Nothing
+		Picosat.Unknown -> undefined
