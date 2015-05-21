@@ -1,17 +1,18 @@
-module UnivAlg.SatSolver (Literal, Instance, literal, clause, true, false,
+module UnivAlg.SatSolver (Literal, Instance, Problem, literal, clause, true, false,
 	not, or, and, leq, equ, add, xor, assert, assertequ, assertleq,
-	empty, generate, clauses, literals, solve) where
+	clauses, literals, solveOne, solveAll) where
 
 import Prelude hiding (not, or, and)
-import Control.Monad.State (State, state, execState)
+import Control.Monad.State (State, state, runState)
 import Control.Monad (liftM)
 import qualified Control.Exception as Exception
-import qualified Picosat
 import qualified Data.Set as Set
+import qualified Picosat
 
 type Literal = Int
 data Instance = MakeInst Int [[Int]]
 	deriving (Show, Eq)
+type Problem = State Instance [Literal]
 
 literal :: State Instance Literal
 literal = state $ \(MakeInst ls cs) -> (ls + 1, MakeInst (ls + 1) cs)
@@ -95,12 +96,6 @@ assertequ a b = do
 assertleq :: Literal -> Literal -> State Instance ()
 assertleq a b = clause [not a, b]
 
-empty :: Instance
-empty = MakeInst 1 [[1]]
-
-generate :: Instance -> State Instance a -> Instance
-generate i p = execState p i
-
 literals :: Instance -> Int
 literals (MakeInst ls _) = ls
 
@@ -113,9 +108,25 @@ answer as =
 		f x = let y = Set.member x a in Exception.assert (y || Set.member (-x ) a) y
 	in f
 
-solve :: Instance -> Maybe (Literal -> Bool)
-solve i =
-	case Picosat.unsafeSolve (clauses i) of
-		Picosat.Solution as -> Just $ answer as
-		Picosat.Unsatisfiable -> Nothing
-		Picosat.Unknown -> undefined
+solve1 :: ([Literal], Instance) -> Maybe [Bool]
+solve1 (ls, i) = case Picosat.unsafeSolve (clauses i) of
+	Picosat.Solution as -> Just $ fmap (answer as) ls
+	Picosat.Unsatisfiable -> Nothing
+	Picosat.Unknown -> error "picosat failed"
+
+solveOne :: Problem -> Maybe [Bool]
+solveOne p = solve1 $ runState p (MakeInst 1 [[1]])
+
+condnot :: (Bool, Literal) -> Literal
+condnot (b, l) = if b then not l else l
+
+exclude :: Instance -> [Bool] -> [Literal] -> Instance
+exclude (MakeInst ls cs) bs xs = MakeInst ls ((fmap condnot $ zip bs xs) : cs)
+
+solve2 :: ([Literal], Instance) -> [[Bool]]
+solve2 (ls, i) = case solve1 (ls, i) of
+	Nothing -> []
+	Just bs -> bs : solve2 (ls, exclude i bs ls)
+
+solveAll :: Problem -> [[Bool]]
+solveAll p = solve2 $ runState p (MakeInst 1 [[1]])

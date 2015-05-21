@@ -1,15 +1,17 @@
 module Test where
 
 import UnivAlg.SatSolver as SatSolver
+-- import UnivAlg.Array as Array
 
-test :: SatSolver.Instance
-test = SatSolver.generate SatSolver.empty $ do
+test :: SatSolver.Problem
+test = do
 	x <- SatSolver.literal
 	y <- SatSolver.literal
-	z <- SatSolver.xor x y
-	assert z
+	z <- SatSolver.literal
+	u <- SatSolver.xor x y
+	v <- SatSolver.xor u z
+	assert v
+	return [x, y, z]
 
-sol :: SatSolver.Literal -> Bool
-sol = case SatSolver.solve test of
-	Just f -> f
-	_ -> undefined
+main :: IO ()
+main = putStrLn $ show (SatSolver.solveAll test)

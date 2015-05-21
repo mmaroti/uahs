@@ -2,7 +2,6 @@ module UnivAlg.Array (shape, dim, size, index, indexM, generate, generateM,
 	fmapM, constant, constantM, scalar, vector, extend, entrywise,
 	entrywiseM, collect, collectM) where
 
--- import qualified UnivAlg.Semiring as Semiring
 import qualified Data.Vector as Vector
 import Control.Exception (assert)
 import Control.Applicative (Applicative, pure, (<*>))
