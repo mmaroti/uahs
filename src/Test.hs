@@ -1,10 +1,10 @@
 module Test where
 
 import UnivAlg.SatSolver as SatSolver
--- import UnivAlg.Array as Array
+import UnivAlg.DiscrMath as DiscrMath
 
-test :: SatSolver.Problem
-test = do
+test1 :: SatSolver.Problem
+test1 = do
 	x <- SatSolver.literal
 	y <- SatSolver.literal
 	z <- SatSolver.literal
@@ -13,5 +13,10 @@ test = do
 	assert v
 	return [x, y, z]
 
+test2 :: DiscrMath.Problem
+test2 = do
+	x <- DiscrMath.litarray [5]
+	return [x]
+
 main :: IO ()
-main = print (SatSolver.solveAll test)
+main = print (SatSolver.solveAll test1)

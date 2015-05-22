@@ -1,6 +1,6 @@
-module UnivAlg.Array (shape, dim, size, index, indexM, generate, generateM,
-	fmapM, constant, constantM, scalar, vector, extend, entrywise,
-	entrywiseM, collect, collectM) where
+module UnivAlg.Array (Array, shape, dim, size, index, indexM, generate, generateM,
+	toList, fromList, fmapM, constant, constantM, scalar, vector, extend,
+	entrywise, entrywiseM, collect, collectM) where
 
 import qualified Data.Vector as Vector
 import Control.Exception (assert)
@@ -25,10 +25,15 @@ idx ((a, b) : as) (x : xs) = assert (0 <= x && x < b) a * x + idx as xs
 idx _ _ = undefined
 
 index :: Array a -> [Int] -> a
-index (MakeArray cs v) = (Vector.!) v . idx cs
+index (MakeArray ds v) = (Vector.!) v . idx ds
 
 indexM :: Monad m => Array a -> [Int] -> m a
-indexM (MakeArray cs v) = Vector.indexM v . idx cs
+indexM (MakeArray ds v) = Vector.indexM v . idx ds
+
+toList :: Array a -> [a]
+toList a =
+	let bs = shape a
+	in fmap (index a) []
 
 gen :: Int -> [Int] -> [(Int, Int)]
 gen _ [] = []
@@ -37,6 +42,11 @@ gen a (x : xs) = (a, x) : gen (a * x) xs
 inv :: [Int] -> Int -> [Int]
 inv [] n = assert (n == 0) []
 inv (x : xs) n = let (m, k) = divMod n x in k : inv xs m
+
+fromList :: [Int] -> [a] -> Array a
+fromList bs as =
+	let v = Vector.fromList as
+	in assert (product bs == Vector.length v) MakeArray (gen 1 bs) v
 
 generate :: ([Int] -> a) -> [Int] -> Array a
 generate f bs = MakeArray (gen 1 bs) (Vector.generate (product bs) (f . inv bs))
