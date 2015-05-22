@@ -1,6 +1,6 @@
 module UnivAlg.SatSolver (Literal, Instance, Problem, literal, clause, true, false,
-	not, or, and, leq, equ, add, xor, assert, assertequ, assertleq,
-	clauses, literals, solveOne, solveAll) where
+	lift, not, or, liftor, and, liftand, leq, equ, liftequ, add, liftadd, xor,
+	assert, assertequ, assertleq, clauses, literals, solveOne, solveAll) where
 
 import Prelude hiding (not, or, and)
 import Control.Monad.State (State, state, runState)
@@ -26,6 +26,9 @@ true = 1
 false :: Literal
 false = not true
 
+lift :: Bool -> Literal
+lift b = if b then true else false
+
 not :: Literal -> Literal
 not a = - a
 
@@ -41,8 +44,14 @@ or a b
 		clause [a, b, not c]
 		return c
 
+liftor :: Bool -> Literal -> Literal
+liftor a b = if a then true else b
+
 and :: Literal -> Literal -> State Instance Literal
 and a b = liftM not (or (not a) (not b))
+
+liftand :: Bool -> Literal -> Literal
+liftand a b = if a then b else false
 
 leq :: Literal -> Literal -> State Instance Literal
 leq a = or (not a)
@@ -63,8 +72,14 @@ equ a b
 		clause [not a, not b, c]
 		return c
 
+liftequ :: Bool -> Literal -> Literal
+liftequ a b = if a then b else not b
+
 add :: Literal -> Literal -> State Instance Literal
 add a = equ (not a)
+
+liftadd :: Bool -> Literal -> Literal
+liftadd a b = if a then not b else b
 
 -- xor 1 1 is undefined
 xor :: Literal -> Literal -> State Instance Literal
@@ -115,13 +130,10 @@ solve1 (ls, i) = case Picosat.unsafeSolve (clauses i) of
 	Picosat.Unknown -> error "picosat failed"
 
 solveOne :: Problem -> Maybe [Bool]
-solveOne p = solve1 $ runState p (MakeInst 1 [[1]])
-
-condnot :: (Bool, Literal) -> Literal
-condnot (b, l) = if b then not l else l
+solveOne p = solve1 $ runState p (MakeInst 1 [[true]])
 
 exclude :: Instance -> [Bool] -> [Literal] -> Instance
-exclude (MakeInst ls cs) bs xs = MakeInst ls ((fmap condnot $ zip bs xs) : cs)
+exclude (MakeInst ls cs) bs xs = MakeInst ls (fmap (uncurry liftadd) (zip bs xs) : cs)
 
 solve2 :: ([Literal], Instance) -> [[Bool]]
 solve2 (ls, i) = case solve1 (ls, i) of
@@ -129,4 +141,4 @@ solve2 (ls, i) = case solve1 (ls, i) of
 	Just bs -> bs : solve2 (ls, exclude i bs ls)
 
 solveAll :: Problem -> [[Bool]]
-solveAll p = solve2 $ runState p (MakeInst 1 [[1]])
+solveAll p = solve2 $ runState p (MakeInst 1 [[true]])

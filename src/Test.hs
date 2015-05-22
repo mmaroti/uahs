@@ -14,4 +14,4 @@ test = do
 	return [x, y, z]
 
 main :: IO ()
-main = putStrLn $ show (SatSolver.solveAll test)
+main = print (SatSolver.solveAll test)
