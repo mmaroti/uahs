@@ -5,9 +5,9 @@ import UnivAlg.DiscrMath as DiscrMath
 
 test1 :: SatSolver.Problem
 test1 = do
-	x <- SatSolver.literal
-	y <- SatSolver.literal
-	z <- SatSolver.literal
+	x <- SatSolver.variable
+	y <- SatSolver.variable
+	z <- SatSolver.variable
 	u <- SatSolver.xor x y
 	v <- SatSolver.xor u z
 	assert v
@@ -18,7 +18,7 @@ main1 = print (SatSolver.solveAll $ SatSolver.generate test1)
 
 test2 :: DiscrMath.Problem
 test2 = do
-	x <- DiscrMath.literal [2]
+	x <- DiscrMath.variable [2]
 	return [x]
 
 main2 :: IO ()

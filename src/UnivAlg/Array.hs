@@ -6,7 +6,6 @@ import qualified Data.Vector as Vector
 import Control.Exception (assert)
 import Control.Applicative (Applicative, pure, (<*>))
 import Control.Monad (liftM, (<=<), foldM)
---import Debug.Trace (traceShow)
 
 data Array a = MakeArray [(Int,Int)] (Vector.Vector a)
 	deriving (Show, Eq)
@@ -72,7 +71,7 @@ constant a bs = MakeArray (map g bs) (Vector.singleton a) where
 	g x = (0, x)
 
 constantM :: Monad m => m a -> [Int] -> m (Array a)
-constantM a bs = (liftM $ MakeArray (gen 1 bs)) (Vector.generateM (product bs) (const a))
+constantM a = generateM (const a)
 
 scalar :: a -> Array a
 scalar a = MakeArray [] (Vector.singleton a)
