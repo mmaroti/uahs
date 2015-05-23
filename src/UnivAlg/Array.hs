@@ -1,6 +1,6 @@
 module UnivAlg.Array (Array, shape, dim, size, index, indexM, generate, generateM,
-	toList, fromList, fmapM, constant, constantM, scalar, vector, extend,
-	entrywise, entrywiseM, collect, collectM) where
+	toList, fromList, toList2, fromList2, fmapM, constant, constantM,
+	scalar, vector, extend, entrywise, entrywiseM, collect, collectM) where
 
 import qualified Data.Vector as Vector
 import Control.Exception (assert)
@@ -31,9 +31,12 @@ indexM :: Monad m => Array a -> [Int] -> m a
 indexM (MakeArray ds v) = Vector.indexM v . idx ds
 
 toList :: Array a -> [a]
-toList a =
-	let bs = shape a
-	in fmap (index a) []
+toList (MakeArray ds v) =
+	let g (a, b) cs = [x + y | x <- cs, y <- [0, a .. a * (b - 1)]]
+	in fmap ((Vector.!) v) (foldr g [0] ds)
+
+toList2 :: [Array a] -> [a]
+toList2 as = concat $ fmap toList as
 
 gen :: Int -> [Int] -> [(Int, Int)]
 gen _ [] = []
@@ -47,6 +50,15 @@ fromList :: [Int] -> [a] -> Array a
 fromList bs as =
 	let v = Vector.fromList as
 	in assert (product bs == Vector.length v) MakeArray (gen 1 bs) v
+
+fromList2 :: [[Int]] -> [a] -> [Array a]
+fromList2 bs as =
+	let	g [] _ = []
+		g (x : xs) ys =
+			let (us, vs) = splitAt (product x) ys
+			in us : g xs vs
+		t = sum $ fmap product bs
+	in assert (t == length as) $ fmap (uncurry fromList) $ zip bs (g bs as)
 
 generate :: ([Int] -> a) -> [Int] -> Array a
 generate f bs = MakeArray (gen 1 bs) (Vector.generate (product bs) (f . inv bs))

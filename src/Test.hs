@@ -15,7 +15,7 @@ test1 = do
 
 test2 :: DiscrMath.Problem
 test2 = do
-	x <- DiscrMath.litarray [5]
+	x <- DiscrMath.litArray [5]
 	return [x]
 
 main :: IO ()

@@ -1,6 +1,6 @@
 module UnivAlg.SatSolver (Literal, Instance, Problem, literal, clause, true, false,
-	lift, not, or, liftor, and, liftand, leq, equ, liftequ, add, liftadd, xor,
-	assert, assertequ, assertleq, clauses, literals, solveOne, solveAll) where
+	lift, not, or, liftOr, and, liftAnd, leq, equ, liftEqu, add, liftAdd, xor,
+	assert, assertEqu, assertLeq, clauses, literals, solveOne, solveAll) where
 
 import Prelude hiding (not, or, and)
 import Control.Monad.State (State, state, runState)
@@ -44,14 +44,14 @@ or a b
 		clause [a, b, not c]
 		return c
 
-liftor :: Bool -> Literal -> Literal
-liftor a b = if a then true else b
+liftOr :: Bool -> Literal -> Literal
+liftOr a b = if a then true else b
 
 and :: Literal -> Literal -> State Instance Literal
 and a b = liftM not (or (not a) (not b))
 
-liftand :: Bool -> Literal -> Literal
-liftand a b = if a then b else false
+liftAnd :: Bool -> Literal -> Literal
+liftAnd a b = if a then b else false
 
 leq :: Literal -> Literal -> State Instance Literal
 leq a = or (not a)
@@ -72,14 +72,14 @@ equ a b
 		clause [not a, not b, c]
 		return c
 
-liftequ :: Bool -> Literal -> Literal
-liftequ a b = if a then b else not b
+liftEqu :: Bool -> Literal -> Literal
+liftEqu a b = if a then b else not b
 
 add :: Literal -> Literal -> State Instance Literal
 add a = equ (not a)
 
-liftadd :: Bool -> Literal -> Literal
-liftadd a b = if a then not b else b
+liftAdd :: Bool -> Literal -> Literal
+liftAdd a b = if a then not b else b
 
 -- xor 1 1 is undefined
 xor :: Literal -> Literal -> State Instance Literal
@@ -102,14 +102,14 @@ xor a b
 assert :: Literal -> State Instance ()
 assert a = clause [a]
 
-assertequ :: Literal -> Literal -> State Instance ()
-assertequ a b = do
+assertEqu :: Literal -> Literal -> State Instance ()
+assertEqu a b = do
 	clause [a, not b]
 	clause [not a, b]
 	return ()
 
-assertleq :: Literal -> Literal -> State Instance ()
-assertleq a b = clause [not a, b]
+assertLeq :: Literal -> Literal -> State Instance ()
+assertLeq a b = clause [not a, b]
 
 literals :: Instance -> Int
 literals (MakeInst ls _) = ls
@@ -133,7 +133,7 @@ solveOne :: Problem -> Maybe [Bool]
 solveOne p = solve1 $ runState p (MakeInst 1 [[true]])
 
 exclude :: Instance -> [Bool] -> [Literal] -> Instance
-exclude (MakeInst ls cs) bs xs = MakeInst ls (fmap (uncurry liftadd) (zip bs xs) : cs)
+exclude (MakeInst ls cs) bs xs = MakeInst ls (fmap (uncurry liftAdd) (zip bs xs) : cs)
 
 solve2 :: ([Literal], Instance) -> [[Bool]]
 solve2 (ls, i) = case solve1 (ls, i) of
