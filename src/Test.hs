@@ -13,10 +13,13 @@ test1 = do
 	assert v
 	return [x, y, z]
 
+main1 :: IO ()
+main1 = print (SatSolver.solveAll $ SatSolver.generate test1)
+
 test2 :: DiscrMath.Problem
 test2 = do
-	x <- DiscrMath.litArray [5]
+	x <- DiscrMath.literal [2]
 	return [x]
 
-main :: IO ()
-main = print (SatSolver.solveAll test1)
+main2 :: IO ()
+main2 = print (DiscrMath.solveAll $ DiscrMath.generate test2)

@@ -1,19 +1,27 @@
-module UnivAlg.DiscrMath (LitArray, Instance, Problem, litArray) where
+module UnivAlg.DiscrMath (Literal, Instance, Problem, literal, generate, solveOne, solveAll) where
 
 import Control.Monad.State (State)
---import Control.Monad (liftM)
 import qualified UnivAlg.Array as Array
 import qualified UnivAlg.SatSolver as SatSolver
 
-type LitArray = Array.Array SatSolver.Literal
+type Literal = Array.Array SatSolver.Literal
 type Instance = SatSolver.Instance
-type Problem = State Instance [LitArray]
+type Problem = State Instance [Literal]
 
-litArray :: [Int] -> State Instance LitArray
-litArray = Array.constantM SatSolver.literal
+literal :: [Int] -> State Instance Literal
+literal = Array.constantM SatSolver.literal
 
---solveOne :: Problem -> Maybe [Array.Array Bool]
---solveOne p =
---	let	q = liftM Array.toList2 $ p
---		bs = fmap Array.shape
---	in undefined
+generate :: State Instance a -> (a, Instance)
+generate = SatSolver.generate
+
+solveOne :: ([Literal], Instance) -> Maybe [Array.Array Bool]
+solveOne (as, i) =
+	let (bs, xs) = (fmap Array.shape as, Array.toList2 as)
+	in case SatSolver.solveOne (xs, i) of
+		Nothing -> Nothing
+		Just ys -> Just (Array.fromList2 bs ys)
+
+solveAll :: ([Literal], Instance) -> [[Array.Array Bool]]
+solveAll (as, i) =
+	let (bs, xs) = (fmap Array.shape as, Array.toList2 as)
+	in fmap (Array.fromList2 bs) $ SatSolver.solveAll (xs, i)

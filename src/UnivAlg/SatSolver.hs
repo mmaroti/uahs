@@ -1,11 +1,10 @@
 module UnivAlg.SatSolver (Literal, Instance, Problem, literal, clause, true, false,
 	lift, not, or, liftOr, and, liftAnd, leq, equ, liftEqu, add, liftAdd, xor,
-	assert, assertEqu, assertLeq, clauses, literals, solveOne, solveAll) where
+	assert, assertEqu, assertLeq, generate, clauses, literals, solveOne, solveAll) where
 
 import Prelude hiding (not, or, and)
 import Control.Monad.State (State, state, runState)
 import Control.Monad (liftM)
-import qualified Control.Exception as Exception
 import qualified Data.Set as Set
 import qualified Picosat
 
@@ -111,6 +110,9 @@ assertEqu a b = do
 assertLeq :: Literal -> Literal -> State Instance ()
 assertLeq a b = clause [not a, b]
 
+generate :: State Instance a -> (a, Instance)
+generate p = runState p (MakeInst 1 [[true]])
+
 literals :: Instance -> Int
 literals (MakeInst ls _) = ls
 
@@ -119,26 +121,19 @@ clauses (MakeInst _ cs) = cs
 
 answer :: [Int] -> Int -> Bool
 answer as =
-	let	a = Set.fromList as
-		f x = let y = Set.member x a in Exception.assert (y || Set.member (-x ) a) y
-	in f
+	let	a = Set.fromList $ filter (> 0) as
+	in (`Set.member` a)
 
-solve1 :: ([Literal], Instance) -> Maybe [Bool]
-solve1 (ls, i) = case Picosat.unsafeSolve (clauses i) of
+solveOne :: ([Literal], Instance) -> Maybe [Bool]
+solveOne (ls, i) = case Picosat.unsafeSolve (clauses i) of
 	Picosat.Solution as -> Just $ fmap (answer as) ls
 	Picosat.Unsatisfiable -> Nothing
 	Picosat.Unknown -> error "picosat failed"
 
-solveOne :: Problem -> Maybe [Bool]
-solveOne p = solve1 $ runState p (MakeInst 1 [[true]])
-
 exclude :: Instance -> [Bool] -> [Literal] -> Instance
 exclude (MakeInst ls cs) bs xs = MakeInst ls (fmap (uncurry liftAdd) (zip bs xs) : cs)
 
-solve2 :: ([Literal], Instance) -> [[Bool]]
-solve2 (ls, i) = case solve1 (ls, i) of
+solveAll :: ([Literal], Instance) -> [[Bool]]
+solveAll (ls, i) = case solveOne (ls, i) of
 	Nothing -> []
-	Just bs -> bs : solve2 (ls, exclude i bs ls)
-
-solveAll :: Problem -> [[Bool]]
-solveAll p = solve2 $ runState p (MakeInst 1 [[true]])
+	Just bs -> bs : solveAll (ls, exclude i bs ls)
