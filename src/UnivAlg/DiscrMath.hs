@@ -1,6 +1,8 @@
-module UnivAlg.DiscrMath (Variable, Instance, Problem, variable, generate, solveOne, solveAll) where
+module UnivAlg.DiscrMath (Variable, Instance, Problem, variable, assert,
+	collectXor, generate, solveOne, solveAll) where
 
 import Control.Monad.State (State)
+--import Control.Monad (mapM_)
 import qualified UnivAlg.Array as Array
 import qualified UnivAlg.SatSolver as SatSolver
 
@@ -10,6 +12,12 @@ type Problem = State Instance [Variable]
 
 variable :: [Int] -> State Instance Variable
 variable = Array.constantM SatSolver.variable
+
+assert :: Variable -> State Instance ()
+assert a = mapM_ SatSolver.assert (Array.toList a)
+
+collectXor :: Int -> Variable -> State Instance Variable
+collectXor = Array.collectM SatSolver.xor
 
 generate :: State Instance a -> (a, Instance)
 generate = SatSolver.generate

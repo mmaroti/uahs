@@ -1,11 +1,11 @@
 module UnivAlg.Array (Array, shape, dim, size, index, indexM, generate, generateM,
-	toList, fromList, toList2, fromList2, fmapM, constant, constantM,
+	toList, fromList, toList2, fromList2, fmapM, constant, constantM, pos,
 	scalar, vector, extend, entrywise, entrywiseM, collect, collectM) where
 
-import qualified Data.Vector as Vector
 import Control.Exception (assert)
 import Control.Applicative (Applicative, pure, (<*>))
 import Control.Monad (liftM, (<=<), foldM)
+import qualified Data.Vector as Vector
 
 data Array a = MakeArray [(Int,Int)] (Vector.Vector a)
 	deriving (Show, Eq)
@@ -30,26 +30,34 @@ index (MakeArray ds v) = (Vector.!) v . idx ds
 indexM :: Monad m => Array a -> [Int] -> m a
 indexM (MakeArray ds v) = Vector.indexM v . idx ds
 
+pos :: [(Int, Int)] -> [Int] -> [Int]
+pos [] ys = ys
+pos ((a, b) : xs) ys = [ x + y | x <- [0, a .. a * (b - 1)], y <- pos xs ys ]
+
 toList :: Array a -> [a]
-toList (MakeArray ds v) =
-	let g (a, b) cs = [x + y | x <- cs, y <- [0, a .. a * (b - 1)]]
-	in fmap ((Vector.!) v) (foldr g [0] ds)
+toList (MakeArray ds v) = fmap ((Vector.!) v) (pos ds [0])
 
 toList2 :: [Array a] -> [a]
 toList2 as = concat $ fmap toList as
 
-gen :: Int -> [Int] -> [(Int, Int)]
-gen _ [] = []
-gen a (x : xs) = (a, x) : gen (a * x) xs
+gen :: [Int] -> [(Int, Int)]
+gen [] = []
+gen (b : bs) = case gen bs of
+	[] -> [(1, b)]
+	xs@((x, y) : _) -> (x * y, b) : xs
 
 inv :: [Int] -> Int -> [Int]
-inv [] n = assert (n == 0) []
-inv (x : xs) n = let (m, k) = divMod n x in k : inv xs m
+inv bs n = let (xs, m) = g bs n in assert (m == 0) xs where
+	g [] m = ([], m)
+	g (c : cs) m =
+		let	(xs, k) = g cs m
+			(l, x) = divMod k c
+		in (x : xs, l)
 
 fromList :: [Int] -> [a] -> Array a
 fromList bs as =
 	let v = Vector.fromList as
-	in assert (product bs == Vector.length v) MakeArray (gen 1 bs) v
+	in assert (product bs == Vector.length v) MakeArray (gen bs) v
 
 fromList2 :: Show a => [[Int]] -> [a] -> [Array a]
 fromList2 bs as =
@@ -61,10 +69,10 @@ fromList2 bs as =
 	in assert (t == length as) $ fmap (uncurry fromList) $ zip bs (g bs as)
 
 generate :: ([Int] -> a) -> [Int] -> Array a
-generate f bs = MakeArray (gen 1 bs) (Vector.generate (product bs) (f . inv bs))
+generate f bs = MakeArray (gen bs) (Vector.generate (product bs) (f . inv bs))
 
 generateM :: Monad m => ([Int] -> m a) -> [Int] -> m (Array a)
-generateM f bs = (liftM $ MakeArray (gen 1 bs)) (Vector.generateM (product bs) (f . inv bs))
+generateM f bs = (liftM $ MakeArray (gen bs)) (Vector.generateM (product bs) (f . inv bs))
 
 constant :: a -> [Int] -> Array a
 constant a bs = MakeArray (map g bs) (Vector.singleton a) where
@@ -107,21 +115,23 @@ extend bs (MakeArray cs v, ns) = assert (length cs == length ns) MakeArray ds v 
 	upd (a1, b1) (a2, b2) = assert (b1 == b2) (a1 + a2, b1)
 	ds = Vector.toList $ Vector.accum upd (Vector.fromList $ map g bs) (zip ns cs)
 
+-- TODO: implement this without string concatenation
 collect :: (a -> a -> a) -> Int -> Array a -> Array a
 collect f n a =
-	let	(bs, cs) = assert (n <= dim a) (splitAt n $ shape a)
-		zs = fmap (inv bs) [0 .. (product bs - 1)]
-		g ys = foldl1 f $ fmap (\xs -> index a (xs ++ ys)) zs
-	in generate g cs
+	let	(bs, cs) = assert (n <= dim a) (splitAt (dim a - n) (shape a))
+		zs = fmap (inv bs) [0 .. (product cs - 1)]
+		g xs = foldl1 f $ fmap (\ys -> index a (xs ++ ys)) zs
+	in generate g bs
 
 foldM1 :: Monad m => (a -> a -> m a) -> [a] -> m a
 foldM1 _ [a] = return a
 foldM1 f (a : as) = foldM f a as
 foldM1 _ [] = undefined
 
+-- TODO: implement this without string concatenation
 collectM :: Monad m => (a -> a -> m a) -> Int -> Array a -> m (Array a)
 collectM f n a =
-	let	(bs, cs) = assert (n <= dim a) (splitAt n $ shape a)
-		zs = fmap (inv bs) [0 .. (product bs - 1)]
-		g ys = foldM1 f =<< mapM (\xs -> indexM a (xs ++ ys)) zs
-	in generateM g cs
+	let	(bs, cs) = assert (n <= dim a) (splitAt (dim a - n) (shape a))
+		zs = fmap (inv cs) [0 .. (product cs - 1)]
+		g xs = foldM1 f =<< mapM (\ys -> indexM a (xs ++ ys)) zs
+	in generateM g bs

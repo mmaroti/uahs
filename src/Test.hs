@@ -10,7 +10,7 @@ test1 = do
 	z <- SatSolver.variable
 	u <- SatSolver.xor x y
 	v <- SatSolver.xor u z
-	assert v
+	SatSolver.assert v
 	return [x, y, z]
 
 main1 :: IO ()
@@ -18,7 +18,9 @@ main1 = print (SatSolver.solveAll $ SatSolver.generate test1)
 
 test2 :: DiscrMath.Problem
 test2 = do
-	x <- DiscrMath.variable [2]
+	x <- DiscrMath.variable [2, 3]
+	y <- DiscrMath.collectXor 1 x
+	DiscrMath.assert y
 	return [x]
 
 main2 :: IO ()
