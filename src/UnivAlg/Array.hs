@@ -35,7 +35,9 @@ pos [] ys = ys
 pos ((a, b) : xs) ys = [ x + y | x <- [0, a .. a * (b - 1)], y <- pos xs ys ]
 
 toList :: Array a -> [a]
-toList (MakeArray ds v) = fmap ((Vector.!) v) (pos ds [0])
+toList a@(MakeArray ds v) =
+	if ds == gen (shape a) then Vector.toList v
+	else fmap ((Vector.!) v) (pos ds [0])
 
 toList2 :: [Array a] -> [a]
 toList2 as = concat $ fmap toList as
