@@ -1,5 +1,5 @@
 module UnivAlg.Array (Array, shape, dim, size, index, indexM, generate, generateM,
-	toList, fromList, toList2, fromList2, fmapM, constant, constantM, pos,
+	toList, fromList, toList2, fromList2, fmapM, constant, constantM,
 	scalar, vector, extend, entrywise, entrywiseM, collect, collectM) where
 
 import Control.Exception (assert)
@@ -117,23 +117,21 @@ extend bs (MakeArray cs v, ns) = assert (length cs == length ns) MakeArray ds v 
 	upd (a1, b1) (a2, b2) = assert (b1 == b2) (a1 + a2, b1)
 	ds = Vector.toList $ Vector.accum upd (Vector.fromList $ map g bs) (zip ns cs)
 
--- TODO: implement this without string concatenation
 collect :: (a -> a -> a) -> Int -> Array a -> Array a
-collect f n a =
-	let	(bs, cs) = assert (n <= dim a) (splitAt (dim a - n) (shape a))
-		zs = fmap (inv bs) [0 .. (product cs - 1)]
-		g xs = foldl1 f $ fmap (\ys -> index a (xs ++ ys)) zs
-	in generate g bs
+collect f n (MakeArray cs v) =
+	let	(as, bs) = assert (n <= length cs) (splitAt (length cs - n) cs)
+		ys = pos bs [0]
+		g xs = let x = idx as xs in foldl1 f $ fmap ((Vector.!) v . (x +)) ys
+	in generate g (fmap snd as)
 
 foldM1 :: Monad m => (a -> a -> m a) -> [a] -> m a
 foldM1 _ [a] = return a
 foldM1 f (a : as) = foldM f a as
 foldM1 _ [] = undefined
 
--- TODO: implement this without string concatenation
 collectM :: Monad m => (a -> a -> m a) -> Int -> Array a -> m (Array a)
-collectM f n a =
-	let	(bs, cs) = assert (n <= dim a) (splitAt (dim a - n) (shape a))
-		zs = fmap (inv cs) [0 .. (product cs - 1)]
-		g xs = foldM1 f =<< mapM (\ys -> indexM a (xs ++ ys)) zs
-	in generateM g bs
+collectM f n (MakeArray cs v) =
+	let	(as, bs) = assert (n <= length cs) (splitAt (length cs - n) cs)
+		ys = pos bs [0]
+		g xs = let x = idx as xs in foldM1 f =<< mapM (Vector.indexM v . (x +)) ys
+		in generateM g (fmap snd as)
