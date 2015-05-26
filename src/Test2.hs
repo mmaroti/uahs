@@ -11,4 +11,4 @@ main :: IO ()
 main = do
 	print $ Boolean.evaluate test [True, False]
 	print $ SatSolver.solveOne test 2
---	print $ SatSolver.solveAll test 2
+	print $ SatSolver.solveAll test 2

@@ -3,12 +3,12 @@
 module UnivAlg.SatSolver2 (Literal, Instance, solveOne, solveAll) where
 
 import Prelude hiding (not, and)
-import UnivAlg.Boolean2
 import Control.Monad.State (State, state, runState)
 import Control.Monad (replicateM)
 import Debug.Trace (trace)
 import qualified Data.Set as Set
 import qualified Picosat
+import UnivAlg.Boolean2
 
 newtype Literal = Literal { getLiteral :: Int }
 	deriving (Show, Eq)
