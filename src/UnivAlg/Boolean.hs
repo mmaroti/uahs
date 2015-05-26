@@ -1,4 +1,3 @@
-
 module UnivAlg.Boolean (Boolean(..)) where
 
 import qualified Prelude

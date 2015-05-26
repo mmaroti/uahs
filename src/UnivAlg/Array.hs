@@ -1,6 +1,7 @@
 module UnivAlg.Array (Array, shape, dim, size, index, indexM, generate, generateM,
 	toList, fromList, toList2, fromList2, fmapM, constant, constantM,
-	scalar, vector, extend, entrywise, entrywiseM, collect, collectM) where
+	scalar, vector, extend, entrywise, entrywiseM, collect, collectM,
+	slice, transform) where
 
 import Control.Exception (assert)
 import Control.Applicative (Applicative, pure, (<*>))
@@ -61,7 +62,7 @@ fromList bs as =
 	let v = Vector.fromList as
 	in assert (product bs == Vector.length v) MakeArray (gen bs) v
 
-fromList2 :: Show a => [[Int]] -> [a] -> [Array a]
+fromList2 :: [[Int]] -> [a] -> [Array a]
 fromList2 bs as =
 	let	g [] _ = []
 		g (x : xs) ys =
@@ -119,7 +120,7 @@ extend bs (MakeArray cs v, ns) = assert (length cs == length ns) MakeArray ds v 
 
 collect :: (a -> a -> a) -> Int -> Array a -> Array a
 collect f n (MakeArray cs v) =
-	let	(as, bs) = assert (n <= length cs) (splitAt (length cs - n) cs)
+	let	(as, bs) = assert (n <= length cs) $ splitAt (length cs - n) cs
 		ys = pos bs [0]
 		g xs = let x = idx as xs in foldl1 f $ fmap ((Vector.!) v . (x +)) ys
 	in generate g (fmap snd as)
@@ -131,7 +132,15 @@ foldM1 _ [] = undefined
 
 collectM :: Monad m => (a -> a -> m a) -> Int -> Array a -> m (Array a)
 collectM f n (MakeArray cs v) =
-	let	(as, bs) = assert (n <= length cs) (splitAt (length cs - n) cs)
+	let	(as, bs) = assert (n <= length cs) $ splitAt (length cs - n) cs
 		ys = pos bs [0]
 		g xs = let x = idx as xs in foldM1 f =<< mapM (Vector.indexM v . (x +)) ys
-		in generateM g (fmap snd as)
+	in generateM g (fmap snd as)
+
+slice :: Array a -> [Int] -> Array a
+slice (MakeArray cs v) xs =
+	let (as, bs) = assert (length xs <= length cs) $ splitAt (length xs) cs
+	in MakeArray bs (Vector.drop (idx as xs) v)
+
+transform :: (Array a -> Array b) -> Int -> Array a -> Array b
+transform = undefined

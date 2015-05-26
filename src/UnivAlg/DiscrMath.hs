@@ -1,5 +1,5 @@
 module UnivAlg.DiscrMath (Variable, Instance, Problem, variable, assert,
-	collectXor, generate, solveOne, solveAll) where
+	collectXor, collectOr, generate, literals, clauses, solveOne, solveAll) where
 
 import Control.Monad.State (State)
 --import Control.Monad (mapM_)
@@ -19,8 +19,17 @@ assert a = mapM_ SatSolver.assert (Array.toList a)
 collectXor :: Int -> Variable -> State Instance Variable
 collectXor = Array.collectM SatSolver.xor
 
+collectOr :: Int -> Variable -> State Instance Variable
+collectOr = Array.collectM SatSolver.or
+
 generate :: State Instance a -> (a, Instance)
 generate = SatSolver.generate
+
+literals :: Instance -> Int
+literals = SatSolver.literals
+
+clauses :: Instance -> [[Int]]
+clauses = SatSolver.clauses
 
 solveOne :: ([Variable], Instance) -> Maybe [Array.Array Bool]
 solveOne (as, i) =
