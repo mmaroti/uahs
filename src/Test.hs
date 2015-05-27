@@ -28,7 +28,7 @@ main2 :: IO ()
 main2 = print (DiscrMath.solveAll $ DiscrMath.generate test2)
 
 test3 :: DiscrMath.Problem
-test3 = let n = 60 in do
+test3 = let n = 4 in do
 	x <- DiscrMath.variable [n,n]
 	DiscrMath.assert $ Array.extend [n] (x, [0,0])
 	y <- Array.entrywiseM SatSolver.equ x (Array.extend [n,n] (x, [1,0]))
