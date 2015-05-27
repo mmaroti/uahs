@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 
-module UnivAlg.SatSolver2 (Literal, Instance, solveOne, solveAll) where
+module UnivAlg.SatSolver (Literal, Instance, solveOne, solveAll) where
 
 import Prelude hiding (not, and)
 import Control.Monad.State (State, state, runState)
@@ -8,7 +8,7 @@ import Control.Monad (replicateM)
 import Debug.Trace (trace)
 import qualified Data.Set as Set
 import qualified Picosat
-import UnivAlg.Boolean2
+import UnivAlg.Boolean
 
 newtype Literal = Literal { getLiteral :: Int }
 	deriving (Show, Eq)

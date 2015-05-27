@@ -1,9 +1,9 @@
-module Test2 where
+module Test where
 
-import qualified UnivAlg.SatSolver2 as SatSolver
-import UnivAlg.Boolean2 (Boolean)
-import qualified UnivAlg.Boolean2 as Boolean
-import qualified UnivAlg.DiscrMath2 as DiscrMath
+import qualified UnivAlg.SatSolver as SatSolver
+import UnivAlg.Boolean (Boolean)
+import qualified UnivAlg.Boolean as Boolean
+import qualified UnivAlg.DiscrMath as DiscrMath
 import UnivAlg.Array (Array)
 import Control.Monad (foldM)
 

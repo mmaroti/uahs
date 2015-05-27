@@ -1,10 +1,10 @@
-module UnivAlg.DiscrMath2 (runSolver, all, any, lessThan, lessThanEqu,
+module UnivAlg.DiscrMath (runSolver, all, any, lessThan, lessThanEqu,
 	reflexive, symmetric, transitive) where
 
 import Prelude hiding (all, any)
 import Control.Monad (foldM)
-import UnivAlg.Boolean2 (Boolean)
-import qualified UnivAlg.Boolean2 as Boolean
+import UnivAlg.Boolean (Boolean)
+import qualified UnivAlg.Boolean as Boolean
 import UnivAlg.Array (Array)
 import qualified UnivAlg.Array as Array
 

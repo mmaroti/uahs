@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 
-module UnivAlg.Boolean2 (Boolean(..), evaluate) where
+module UnivAlg.Boolean (Boolean(..), evaluate) where
 
 import qualified Prelude
 import Prelude hiding (not, or, and)
