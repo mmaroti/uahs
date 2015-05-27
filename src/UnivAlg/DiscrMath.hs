@@ -1,8 +1,9 @@
-module UnivAlg.DiscrMath (runSolver, all, any, lessThan, lessThanEqu,
-	reflexive, symmetric, transitive, equivalence) where
+module UnivAlg.DiscrMath (runSolver, all, any, few, one, sum,
+	makeRel, reflexive, symmetric, antisymmetric, transitive,
+	equivalence, quasiorder, partialorder) where
 
-import Prelude hiding (all, any)
-import Control.Monad (foldM)
+import Prelude hiding (all, any, sum)
+import qualified Prelude
 import UnivAlg.Boolean (Boolean)
 import qualified UnivAlg.Boolean as Boolean
 import UnivAlg.Array (Array)
@@ -14,26 +15,29 @@ type Problem m b = [Array b] -> m b
 runSolver :: (Boolean m b, Functor f) => Solver m b f -> Problem m b -> [[Int]] -> f [Array Bool]
 runSolver s p bs =
 	let	g = Array.fromList2 bs
-		n = sum (fmap product bs)
+		n = Prelude.sum (fmap product bs)
 	in fmap g $ s (p . g) n
 
 all :: Boolean m b => Array b -> m b
-all = foldM Boolean.and Boolean.true . Array.toList
+all = Boolean.all . Array.toList
 
 any :: Boolean m b => Array b -> m b
-any = foldM Boolean.or Boolean.false . Array.toList
+any = Boolean.any . Array.toList
 
-lessThan :: Boolean m b => Int -> Array b
-lessThan n =
-	let	f [x,y] = Boolean.lift (x < y)
-		f _ = undefined
-	in Array.generate f [n, n]
+few :: Boolean m b => Array b -> m b
+few = Boolean.few . Array.toList
 
-lessThanEqu :: Boolean m b => Int -> Array b
-lessThanEqu n =
-	let	f [x,y] = Boolean.lift (x <= y)
-		f _ = undefined
-	in Array.generate f [n, n]
+one :: Boolean m b => Array b -> m b
+one = Boolean.one . Array.toList
+
+sum :: Boolean m b => Array b -> m b
+sum = Boolean.sum . Array.toList
+
+makeRel :: Boolean m b => (Int -> Int -> Bool) -> Int -> Array b
+makeRel f n =
+	let	g [x,y] = Boolean.lift $ f x y
+		g _ = undefined
+	in Array.generate g [n, n]
 
 reflexive :: Boolean m b => Array b -> m b
 reflexive a =
@@ -44,8 +48,18 @@ symmetric :: Boolean m b => Array b -> m b
 symmetric a =
 	let	n = head $ Array.shape a
 		b = Array.extend [n, n] (a, [1, 0])
-		c = lessThanEqu n
-	in all =<< (Array.entrywiseM Boolean.or c =<< Array.entrywiseM Boolean.equ a b)
+		c = makeRel (<) n
+	in all =<< (Array.entrywiseM Boolean.leq c =<< Array.entrywiseM Boolean.equ a b)
+
+antisymmetric :: Boolean m b => Array b -> m b
+antisymmetric a =
+	let	n = head $ Array.shape a
+		b = Array.extend [n, n] (a, [1, 0])
+		c = makeRel (==) n
+	in do
+		x <- Array.entrywiseM Boolean.and a b
+		y <- Array.entrywiseM Boolean.leq x c
+		all y
 
 transitive :: Boolean m b => Array b -> m b
 transitive a =
@@ -62,5 +76,18 @@ equivalence :: Boolean m b => Array b -> m b
 equivalence a = do
 	x <- reflexive a
 	y <- symmetric a
+	z <- transitive a
+	Boolean.all [x, y, z]
+
+quasiorder :: Boolean m b => Array b -> m b
+quasiorder a = do
+	x <- reflexive a
+	y <- transitive a
+	Boolean.and x y
+
+partialorder :: Boolean m b => Array b -> m b
+partialorder a = do
+	x <- reflexive a
+	y <- antisymmetric a
 	z <- transitive a
 	Boolean.all [x, y, z]

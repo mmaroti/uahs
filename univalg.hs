@@ -16,12 +16,12 @@ library
   build-depends:
     base >=4.6 && <4.7,
     vector
+    picosat
   hs-source-dirs:	src
   default-language:	Haskell2010
   ghc-options:		-Wall
   exposed-modules:
     UnivAlg.Array
     UnivAlg.Boolean
-    UnivAlg.Semiring
     UnivAlg.SatSolver
     UnivAlg.DiscrMath

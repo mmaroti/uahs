@@ -5,10 +5,9 @@ import UnivAlg.Boolean (Boolean)
 import qualified UnivAlg.Boolean as Boolean
 import qualified UnivAlg.DiscrMath as DiscrMath
 import UnivAlg.Array (Array)
-import Control.Monad (foldM)
 
 test1 :: Boolean m b => [b] -> m b
-test1 = foldM Boolean.add Boolean.false
+test1 = Boolean.sum
 
 main1 :: IO ()
 main1 = do
@@ -17,11 +16,7 @@ main1 = do
 	print $ SatSolver.solveAll test1 2
 
 test2 :: Boolean m b => [Array b] -> m b
-test2 [a] = do
-	t1 <- DiscrMath.reflexive a
-	t2 <- DiscrMath.symmetric a
-	t3 <- DiscrMath.transitive a
-	Boolean.and t1 =<< Boolean.and t2 t3
+test2 [a] = DiscrMath.partialorder a
 test2 _ = undefined
 
 main2 :: IO ()
