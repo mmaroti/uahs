@@ -1,11 +1,12 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 
-module UnivAlg.Boolean (Boolean(..), evaluate) where
+module UnivAlg.Boolean (Boolean(..), all, any, evaluate) where
 
 import qualified Prelude
-import Prelude hiding (not, or, and)
+import Prelude hiding (not, or, and, all, any)
 import Control.Monad.Identity (Identity, runIdentity)
 import Control.Applicative ((<$>), Applicative)
+import Control.Monad (foldM)
 
 class (Monad m, Applicative m) => Boolean m b | b -> m where
 	false :: b
@@ -25,6 +26,12 @@ class (Monad m, Applicative m) => Boolean m b | b -> m where
 	equ x = add (not x)
 	add :: b -> b -> m b
 	add x = equ (not x)
+
+all :: Boolean m b => [b] -> m b
+all = foldM and true
+
+any :: Boolean m b => [b] -> m b
+any = foldM or false
 
 instance Boolean Identity Bool where
 	lift = id

@@ -1,5 +1,5 @@
 module UnivAlg.DiscrMath (runSolver, all, any, lessThan, lessThanEqu,
-	reflexive, symmetric, transitive) where
+	reflexive, symmetric, transitive, equivalence) where
 
 import Prelude hiding (all, any)
 import Control.Monad (foldM)
@@ -57,3 +57,10 @@ transitive a =
 		y <- Array.collectM Boolean.or 1 x
 		z <- Array.entrywiseM Boolean.leq y a
 		all z
+
+equivalence :: Boolean m b => Array b -> m b
+equivalence a = do
+	x <- reflexive a
+	y <- symmetric a
+	z <- transitive a
+	Boolean.all [x, y, z]
