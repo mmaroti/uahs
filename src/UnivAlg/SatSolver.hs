@@ -3,27 +3,27 @@
 module UnivAlg.SatSolver (Literal, Instance, solveOne, solveAll) where
 
 import Prelude hiding (not, and)
-import Control.Monad.State (State, state, runState)
+import Control.Monad.State.Strict (State, state, runState)
 import Control.Monad (replicateM)
+import Control.DeepSeq (deepseq)
 import Debug.Trace (trace)
 import qualified Data.Set as Set
 import qualified Picosat
 import UnivAlg.Boolean
 
-newtype Literal = Literal { getLiteral :: Int }
-	deriving (Show, Eq)
-data Instance = Instance Int [[Literal]]
+type Literal = Int
+data Instance = Instance !Int ![[Literal]]
 	deriving (Show, Eq)
 
 literal :: State Instance Literal
-literal = state $ \(Instance ls cs) -> (Literal (ls + 1), Instance (ls + 1) cs)
+literal = state $ \(Instance ls cs) -> (ls + 1, Instance (ls + 1) cs)
 
 clause :: [Literal] -> State Instance ()
-clause c = state $ \(Instance ls cs) -> ((), Instance ls (c : cs))
+clause c = state $ \(Instance ls cs) -> deepseq c ((), Instance ls (c : cs))
 
 instance Boolean (State Instance) Literal where
-	true = Literal 1
-	not (Literal x) = Literal (negate x)
+	true = 1
+	not = negate
 	and x y
 		| x == true = return y
 		| x == false = return false
@@ -63,12 +63,12 @@ literals :: Instance -> Int
 literals (Instance ls _) = ls
 
 clauses :: Instance -> [[Int]]
-clauses (Instance _ cs) = fmap (fmap getLiteral) cs
+clauses (Instance _ cs) = cs
 
 answer :: [Int] -> Literal -> Bool
 answer as =
 	let a = Set.fromList $ filter (> 0) as
-	in (`Set.member` a) . getLiteral
+	in (`Set.member` a)
 
 solve1 :: ([Literal], Instance) -> Maybe [Bool]
 solve1 (xs, i) = case Picosat.unsafeSolve (clauses i) of

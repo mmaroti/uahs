@@ -1,5 +1,5 @@
 module UnivAlg.DiscrMath (runSolver, all, any, few, one, sum,
-	makeRel, reflexive, symmetric, antisymmetric, transitive,
+	makeRelation, reflexive, symmetric, antisymmetric, transitive,
 	equivalence, quasiorder, partialorder) where
 
 import Prelude hiding (all, any, sum)
@@ -33,8 +33,8 @@ one = Boolean.one . Array.toList
 sum :: Boolean m b => Array b -> m b
 sum = Boolean.sum . Array.toList
 
-makeRel :: Boolean m b => (Int -> Int -> Bool) -> Int -> Array b
-makeRel f n =
+makeRelation :: Boolean m b => (Int -> Int -> Bool) -> Int -> Array b
+makeRelation f n =
 	let	g [x,y] = Boolean.lift $ f x y
 		g _ = undefined
 	in Array.generate g [n, n]
@@ -48,14 +48,14 @@ symmetric :: Boolean m b => Array b -> m b
 symmetric a =
 	let	n = head $ Array.shape a
 		b = Array.extend [n, n] (a, [1, 0])
-		c = makeRel (<) n
+		c = makeRelation (<) n
 	in all =<< (Array.entrywiseM Boolean.leq c =<< Array.entrywiseM Boolean.equ a b)
 
 antisymmetric :: Boolean m b => Array b -> m b
 antisymmetric a =
 	let	n = head $ Array.shape a
 		b = Array.extend [n, n] (a, [1, 0])
-		c = makeRel (==) n
+		c = makeRelation (==) n
 	in do
 		x <- Array.entrywiseM Boolean.and a b
 		y <- Array.entrywiseM Boolean.leq x c

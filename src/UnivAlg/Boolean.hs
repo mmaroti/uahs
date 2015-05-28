@@ -37,7 +37,7 @@ oneStep :: Boolean m b => (b, b) -> b -> m (b, b)
 oneStep (x, y) z = do
 	u <- x `or` z
 	v <- x `and` z
-	w <- y `and` (not v)
+	w <- y `and` not v
 	return (u, w)
 
 few :: Boolean m b => [b] -> m b

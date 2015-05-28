@@ -1,4 +1,4 @@
-module Test where
+module Main where
 
 import qualified UnivAlg.SatSolver as SatSolver
 import UnivAlg.Boolean (Boolean)
@@ -19,7 +19,7 @@ test2 :: Boolean m b => [Array b] -> m b
 test2 [a] = DiscrMath.partialorder a
 test2 _ = undefined
 
-main2 :: IO ()
-main2 = do
-	print $ DiscrMath.runSolver SatSolver.solveOne test2 [[4, 4]]
-	print $ length $ DiscrMath.runSolver SatSolver.solveAll test2 [[4, 4]]
+main :: IO ()
+main = let n = 60 in do
+	print $ DiscrMath.runSolver SatSolver.solveOne test2 [[n, n]]
+--	print $ length $ DiscrMath.runSolver SatSolver.solveAll test2 [[n, n]]

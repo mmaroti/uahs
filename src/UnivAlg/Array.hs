@@ -7,6 +7,7 @@ import Control.Exception (assert)
 import Control.Applicative (Applicative, pure, (<*>))
 import Control.Monad (liftM, (<=<), foldM)
 import qualified Data.Vector as Vector
+import Data.List (foldl1')
 
 data Array a = MakeArray [(Int,Int)] (Vector.Vector a)
 	deriving (Show, Eq)
@@ -122,7 +123,7 @@ collect :: (a -> a -> a) -> Int -> Array a -> Array a
 collect f n (MakeArray cs v) =
 	let	(as, bs) = assert (n <= length cs) $ splitAt (length cs - n) cs
 		ys = pos bs [0]
-		g xs = let x = idx as xs in foldl1 f $ fmap ((Vector.!) v . (x +)) ys
+		g xs = let x = idx as xs in foldl1' f $ fmap ((Vector.!) v . (x +)) ys
 	in generate g (fmap snd as)
 
 foldM1 :: Monad m => (a -> a -> m a) -> [a] -> m a
