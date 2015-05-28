@@ -11,19 +11,22 @@ import qualified Data.Set as Set
 import qualified Picosat
 import UnivAlg.Boolean
 
-type Literal = Int
-data Instance = Instance !Int ![[Literal]]
+newtype Literal = Literal { getLiteral :: Int }
+	deriving (Show, Eq)
+data Instance = Instance !Int ![[Int]]
 	deriving (Show, Eq)
 
 literal :: State Instance Literal
-literal = state $ \(Instance ls cs) -> (ls + 1, Instance (ls + 1) cs)
+literal = state $ \(Instance ls cs) -> (Literal (ls + 1), Instance (ls + 1) cs)
 
 clause :: [Literal] -> State Instance ()
-clause c = state $ \(Instance ls cs) -> deepseq c ((), Instance ls (c : cs))
+clause c = state $ \(Instance ls cs) ->
+	let d = fmap getLiteral c
+	in deepseq d ((), Instance ls (d : cs))
 
 instance Boolean (State Instance) Literal where
-	true = 1
-	not = negate
+	true = Literal 1
+	not (Literal x) = Literal (negate x)
 	and x y
 		| x == true = return y
 		| x == false = return false
@@ -50,14 +53,14 @@ instance Boolean (State Instance) Literal where
 			clause [not x, not y, z]
 			return z
 
-generate :: ([Literal] -> State Instance Literal) -> Int -> ([Literal], Instance)
+generate :: ([Literal] -> State Instance Literal) -> Int -> ([Int], Instance)
 generate f n =
 	let g = do
 		xs <- replicateM n literal
 		y <- f xs
 		clause [y]
-		return xs
-	in runState g (Instance 1 [[true]])
+		return $ fmap getLiteral xs
+	in runState g (Instance 1 [[1]])
 
 literals :: Instance -> Int
 literals (Instance ls _) = ls
@@ -65,12 +68,12 @@ literals (Instance ls _) = ls
 clauses :: Instance -> [[Int]]
 clauses (Instance _ cs) = cs
 
-answer :: [Int] -> Literal -> Bool
+answer :: [Int] -> Int -> Bool
 answer as =
 	let a = Set.fromList $ filter (> 0) as
 	in (`Set.member` a)
 
-solve1 :: ([Literal], Instance) -> Maybe [Bool]
+solve1 :: ([Int], Instance) -> Maybe [Bool]
 solve1 (xs, i) = case Picosat.unsafeSolve (clauses i) of
 	Picosat.Solution as -> Just $ fmap (answer as) xs
 	Picosat.Unsatisfiable -> Nothing
@@ -84,13 +87,13 @@ solveOne f n =
 			++ " clauses."
 	in trace m $ solve1 (xs, i)
 
-liftAdd :: Boolean m b => Bool -> b -> b
-liftAdd x y = if x then not y else y
+liftAdd :: Bool -> Int -> Int
+liftAdd x y = if x then negate y else y
 
-exclude :: Instance -> [Bool] -> [Literal] -> Instance
+exclude :: Instance -> [Bool] -> [Int] -> Instance
 exclude (Instance ls cs) bs xs = Instance ls (fmap (uncurry liftAdd) (zip bs xs) : cs)
 
-solve2 :: ([Literal], Instance) -> [[Bool]]
+solve2 :: ([Int], Instance) -> [[Bool]]
 solve2 (xs, i) = case solve1 (xs, i) of
 	Nothing -> []
 	Just bs -> bs : solve2 (xs, exclude i bs xs)
