@@ -32,7 +32,7 @@ instance Boolean (State Instance) Literal where
 		| x == false = return false
 		| y == true = return x
 		| y == false = return false
-		| otherwise = do
+		| otherwise = trace "and" $ do
 			z <- literal
 			clause [x, not z]
 			clause [y, not z]
@@ -45,7 +45,7 @@ instance Boolean (State Instance) Literal where
 		| y == false = return (not x)
 		| x == y = return true
 		| x == not y = return false
-		| otherwise = do
+		| otherwise = trace "equ" $ do
 			z <- literal
 			clause [x, y, z]
 			clause [x, not y, not z]
@@ -87,11 +87,11 @@ solveOne f n =
 			++ " clauses."
 	in trace m $ solve1 (xs, i)
 
-liftAdd :: Bool -> Int -> Int
-liftAdd x y = if x then negate y else y
+liftAdd :: (Bool, Int) -> Int
+liftAdd (x, y) = if x then negate y else y
 
 exclude :: Instance -> [Bool] -> [Int] -> Instance
-exclude (Instance ls cs) bs xs = Instance ls (fmap (uncurry liftAdd) (zip bs xs) : cs)
+exclude (Instance ls cs) bs xs = Instance ls (fmap liftAdd (zip bs xs) : cs)
 
 solve2 :: ([Int], Instance) -> [[Bool]]
 solve2 (xs, i) = case solve1 (xs, i) of

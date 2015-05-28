@@ -8,6 +8,7 @@ import Control.Applicative (Applicative, pure, (<*>))
 import Control.Monad (liftM, (<=<), foldM)
 import qualified Data.Vector as Vector
 import Data.List (foldl1')
+import Debug.Trace (trace)
 
 data Array a = MakeArray [(Int,Int)] (Vector.Vector a)
 	deriving (Show, Eq)
@@ -76,7 +77,7 @@ generate :: ([Int] -> a) -> [Int] -> Array a
 generate f bs = MakeArray (gen bs) (Vector.generate (product bs) (f . inv bs))
 
 generateM :: Monad m => ([Int] -> m a) -> [Int] -> m (Array a)
-generateM f bs = (liftM $ MakeArray (gen bs)) (Vector.generateM (product bs) (f . inv bs))
+generateM f bs = (liftM $ MakeArray (gen bs)) (Vector.generateM (product bs) (trace "x" . f . inv bs))
 
 constant :: a -> [Int] -> Array a
 constant a bs = MakeArray (map g bs) (Vector.singleton a) where
@@ -104,7 +105,7 @@ entrywise f a b = assert (shape a == shape b) generate g3 (shape a) where
 	g3 xs = f (g1 xs) (g2 xs)
 
 entrywiseM :: Monad m => (a -> b -> m c) -> Array a -> Array b -> m (Array c)
-entrywiseM f a b = assert (shape a == shape b) generateM g3 (shape a) where
+entrywiseM f a b = assert (shape a == shape b) $ generateM g3 (shape a) where
 	g1 = indexM a
 	g2 = indexM b
 	g3 xs = (f =<< g1 xs) =<< g2 xs
@@ -131,11 +132,15 @@ foldM1 _ [a] = return a
 foldM1 f (a : as) = foldM f a as
 foldM1 _ [] = undefined
 
+mapM' :: Monad m => (a -> m b) -> [a] -> [b] -> m [b]
+mapM' _ [] ys = return (reverse ys)
+mapM' f (x : xs) ys = f x >>= \y -> mapM' f xs (y : ys)
+
 collectM :: Monad m => (a -> a -> m a) -> Int -> Array a -> m (Array a)
 collectM f n (MakeArray cs v) =
 	let	(as, bs) = assert (n <= length cs) $ splitAt (length cs - n) cs
 		ys = pos bs [0]
-		g xs = let x = idx as xs in foldM1 f =<< mapM (Vector.indexM v . (x +)) ys
+		g xs = let x = idx as xs in foldM1 f =<< mapM' (Vector.indexM v . (x +)) ys []
 	in generateM g (fmap snd as)
 
 slice :: Array a -> [Int] -> Array a
