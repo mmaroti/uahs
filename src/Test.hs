@@ -20,6 +20,6 @@ test2 [a] = DiscrMath.transitive a
 test2 _ = undefined
 
 main :: IO ()
-main = let n = 70 in do
+main = let n = 50 in do
 	print $ length . show $ DiscrMath.runSolver SatSolver.solveOne test2 [[n, n]]
 --	print $ length $ DiscrMath.runSolver SatSolver.solveAll test2 [[n, n]]

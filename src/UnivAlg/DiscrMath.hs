@@ -8,7 +8,6 @@ import UnivAlg.Boolean (Boolean)
 import qualified UnivAlg.Boolean as Boolean
 import UnivAlg.Array (Array)
 import qualified UnivAlg.Array as Array
-import Debug.Trace (trace)
 
 type Solver m b f = ([b] -> m b) -> Int -> f [Bool]
 type Problem m b = [Array b] -> m b
@@ -66,10 +65,10 @@ transitive :: Boolean m b => Array b -> m b
 transitive a =
 	let n = head $ Array.shape a
 	in do
-		x <- trace "x" $ Array.entrywiseM Boolean.and
+		x <- Array.entrywiseM Boolean.and
 			(Array.extend [n,n,n] (a, [0,2]))
 			(Array.extend [n,n,n] (a, [2,1]))
-		y <- trace "y" $ Array.collectM Boolean.or 1 x
+		y <- Array.collectM Boolean.or 1 x
 		z <- Array.entrywiseM Boolean.leq y a
 		all z
 

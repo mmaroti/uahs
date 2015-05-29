@@ -8,7 +8,6 @@ import Control.Applicative (Applicative, pure, (<*>))
 import Control.Monad (liftM, (<=<), foldM)
 import qualified Data.Vector as Vector
 import Data.List (foldl1')
-import Debug.Trace (trace)
 
 data Array a = MakeArray [(Int,Int)] (Vector.Vector a)
 	deriving (Show, Eq)
@@ -77,7 +76,7 @@ generate :: ([Int] -> a) -> [Int] -> Array a
 generate f bs = MakeArray (gen bs) (Vector.generate (product bs) (f . inv bs))
 
 generateM :: Monad m => ([Int] -> m a) -> [Int] -> m (Array a)
-generateM f bs = (liftM $ MakeArray (gen bs)) (Vector.generateM (product bs) (trace "x" . f . inv bs))
+generateM f bs = (liftM $ MakeArray (gen bs)) (Vector.generateM (product bs) (f . inv bs))
 
 constant :: a -> [Int] -> Array a
 constant a bs = MakeArray (map g bs) (Vector.singleton a) where

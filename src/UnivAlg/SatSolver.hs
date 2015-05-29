@@ -32,7 +32,7 @@ instance Boolean (State Instance) Literal where
 		| x == false = return false
 		| y == true = return x
 		| y == false = return false
-		| otherwise = trace "and" $ do
+		| otherwise = do
 			z <- literal
 			clause [x, not z]
 			clause [y, not z]
@@ -45,7 +45,7 @@ instance Boolean (State Instance) Literal where
 		| y == false = return (not x)
 		| x == y = return true
 		| x == not y = return false
-		| otherwise = trace "equ" $ do
+		| otherwise = do
 			z <- literal
 			clause [x, y, z]
 			clause [x, not y, not z]
