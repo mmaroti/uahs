@@ -1,3 +1,5 @@
+-- Copyright (C) 2015 Miklos Maroti
+
 module UnivAlg.Array (Array, shape, dim, size, index, indexM, generate, generateM,
 	toList, fromList, toList2, fromList2, fmapM, constant, constantM,
 	scalar, vector, extend, entrywise, entrywiseM, collect, collectM,

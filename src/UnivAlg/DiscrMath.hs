@@ -1,3 +1,5 @@
+-- Copyright (C) 2015 Miklos Maroti
+
 module UnivAlg.DiscrMath (runSolver, all, any, few, one, sum,
 	makeRelation, reflexive, symmetric, antisymmetric, transitive,
 	equivalence, quasiorder, partialorder) where

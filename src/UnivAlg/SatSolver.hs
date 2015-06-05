@@ -1,3 +1,5 @@
+-- Copyright (C) 2015 Miklos Maroti
+
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 
 module UnivAlg.SatSolver (Literal, Instance, solveOne, solveAll) where

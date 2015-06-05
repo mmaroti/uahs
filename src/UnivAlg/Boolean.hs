@@ -1,3 +1,5 @@
+-- Copyright (C) 2015 Miklos Maroti
+
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 
 module UnivAlg.Boolean (Boolean(..), all, any, few, one, sum, evaluate) where
