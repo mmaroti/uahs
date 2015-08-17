@@ -37,7 +37,7 @@ sum = Boolean.sum . Array.toList
 
 makeRelation :: Boolean m b => (Int -> Int -> Bool) -> Int -> Array b
 makeRelation f n =
-	let	g [x,y] = Boolean.lift $ f x y
+	let	g [x, y] = Boolean.lift $ f x y
 		g _ = undefined
 	in Array.generate g [n, n]
 
@@ -68,8 +68,8 @@ transitive a =
 	let n = head $ Array.shape a
 	in do
 		x <- Array.entrywiseM Boolean.and
-			(Array.extend [n,n,n] (a, [0,2]))
-			(Array.extend [n,n,n] (a, [2,1]))
+			(Array.extend [n, n, n] (a, [0, 2]))
+			(Array.extend [n, n, n] (a, [2, 1]))
 		y <- Array.collectM Boolean.or 1 x
 		z <- Array.entrywiseM Boolean.leq y a
 		all z

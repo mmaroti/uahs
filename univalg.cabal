@@ -1,0 +1,25 @@
+name: univalg
+version: 0.1.1
+cabal-version: >=1.10
+build-type: Simple
+license: GPL-2
+license-file: LICENSE
+copyright: Miklos Maroti
+maintainer: mmaroti@gmail.com
+synopsis: Universal Algebra in Haskell
+description:  
+category: Math
+author: Miklos Maroti
+data-dir: ""
+ 
+library
+    build-depends: base >=4.6 && <4.7, containers -any, deepseq -any,
+                   mtl -any, picosat -any, vector -any
+    exposed-modules: UnivAlg.Array UnivAlg.Boolean UnivAlg.DiscrMath
+                     UnivAlg.SatSolver
+    exposed: True
+    buildable: True
+    default-language: Haskell2010
+    hs-source-dirs: src
+    ghc-options: -Wall
+ 

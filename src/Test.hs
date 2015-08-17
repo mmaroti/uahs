@@ -7,13 +7,13 @@ import qualified UnivAlg.DiscrMath as DiscrMath
 import UnivAlg.Array (Array)
 
 test1 :: Boolean m b => [b] -> m b
-test1 = Boolean.sum
+test1 = Boolean.one
 
 main1 :: IO ()
 main1 = do
 	print $ Boolean.evaluate test1 [True, False]
-	print $ SatSolver.solveOne test1 2
-	print $ SatSolver.solveAll test1 2
+	print $ SatSolver.solveOne test1 3
+	print $ SatSolver.solveAll test1 3
 
 test2 :: Boolean m b => [Array b] -> m b
 test2 [a] = DiscrMath.transitive a
