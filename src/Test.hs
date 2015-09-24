@@ -16,10 +16,11 @@ main1 = do
 	print $ SatSolver.solveAll test1 3
 
 test2 :: Boolean m b => [Array b] -> m b
-test2 [a] = DiscrMath.transitive a
+test2 [a] = DiscrMath.partialorder a
 test2 _ = undefined
 
 main :: IO ()
-main = let n = 50 in do
-	print $ length . show $ DiscrMath.runSolver SatSolver.solveOne test2 [[n, n]]
---	print $ length $ DiscrMath.runSolver SatSolver.solveAll test2 [[n, n]]
+main = let n = 20 in do
+	print $ length . show $ DiscrMath.execute SatSolver.solveOne test2 [[n, n]]
+	print $ DiscrMath.execute SatSolver.solveOne test2 [[n, n]]
+--	print $ length $ DiscrMath.execute SatSolver.solveAll test2 [[n, n]]

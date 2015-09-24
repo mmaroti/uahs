@@ -1,6 +1,6 @@
 -- Copyright (C) 2015 Miklos Maroti
 
-module UnivAlg.DiscrMath (runSolver, all, any, few, one, sum,
+module UnivAlg.DiscrMath (execute, all, any, few, one, sum,
 	makeRelation, reflexive, symmetric, antisymmetric, transitive,
 	equivalence, quasiorder, partialorder) where
 
@@ -14,8 +14,8 @@ import qualified UnivAlg.Array as Array
 type Solver m b f = ([b] -> m b) -> Int -> f [Bool]
 type Problem m b = [Array b] -> m b
 
-runSolver :: (Boolean m b, Functor f) => Solver m b f -> Problem m b -> [[Int]] -> f [Array Bool]
-runSolver s p bs =
+execute :: (Boolean m b, Functor f) => Solver m b f -> Problem m b -> [[Int]] -> f [Array Bool]
+execute s p bs =
 	let	g = Array.fromList2 bs
 		n = Prelude.sum (fmap product bs)
 	in fmap g $ s (p . g) n

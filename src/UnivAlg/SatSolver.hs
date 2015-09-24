@@ -10,7 +10,8 @@ import Control.Monad (replicateM)
 import Control.DeepSeq (deepseq)
 import Debug.Trace (trace)
 import qualified Data.Set as Set
-import qualified Picosat
+import qualified Picosat as OldPicosat
+import qualified UnivAlg.MyPicosat as Picosat
 import UnivAlg.Boolean
 
 newtype Literal = Literal { getLiteral :: Int }
