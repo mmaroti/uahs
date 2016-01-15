@@ -1,132 +1,105 @@
-module UnivAlg.SatSolver (Literal, Instance, Problem, literal, clause, true, false,
-	not, or, and, leq, equ, add, xor, assert, assertequ, assertleq,
-	clauses, literals, solveOne, solveAll) where
+-- Copyright (C) 2015 Miklos Maroti
 
-import Prelude hiding (not, or, and)
-import Control.Monad.State (State, state, runState)
-import Control.Monad (liftM)
-import qualified Control.Exception as Exception
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+
+module UnivAlg.SatSolver (Literal, Instance, solveOne, solveAll) where
+
+import Prelude hiding (not, and)
+import Control.Monad.State.Strict (State, state, runState)
+import Control.Monad (replicateM)
+import Control.DeepSeq (deepseq)
+import Debug.Trace (trace)
 import qualified Data.Set as Set
-import qualified Picosat
+import qualified Picosat as OldPicosat
+import qualified UnivAlg.MyPicosat as Picosat
+import UnivAlg.Boolean
 
-type Literal = Int
-data Instance = MakeInst Int [[Int]]
+newtype Literal = Literal { getLiteral :: Int }
 	deriving (Show, Eq)
-type Problem = State Instance [Literal]
+data Instance = Instance !Int ![[Int]]
+	deriving (Show, Eq)
 
 literal :: State Instance Literal
-literal = state $ \(MakeInst ls cs) -> (ls + 1, MakeInst (ls + 1) cs)
+literal = state $ \(Instance ls cs) -> (Literal (ls + 1), Instance (ls + 1) cs)
 
 clause :: [Literal] -> State Instance ()
-clause c = state $ \(MakeInst ls cs) -> ((), MakeInst ls (c : cs))
+clause c = state $ \(Instance ls cs) ->
+	let d = fmap getLiteral c
+	in deepseq d ((), Instance ls (d : cs))
 
-true :: Literal
-true = 1
+instance Boolean (State Instance) Literal where
+	true = Literal 1
+	not (Literal x) = Literal (negate x)
+	and x y
+		| x == true = return y
+		| x == false = return false
+		| y == true = return x
+		| y == false = return false
+		| otherwise = do
+			z <- literal
+			clause [x, not z]
+			clause [y, not z]
+			clause [not x, not y, z]
+			return z
+	equ x y
+		| x == true = return y
+		| x == false = return (not y)
+		| y == true = return x
+		| y == false = return (not x)
+		| x == y = return true
+		| x == not y = return false
+		| otherwise = do
+			z <- literal
+			clause [x, y, z]
+			clause [x, not y, not z]
+			clause [not x, y, not z]
+			clause [not x, not y, z]
+			return z
 
-false :: Literal
-false = not true
-
-not :: Literal -> Literal
-not a = - a
-
-or :: Literal -> Literal -> State Instance Literal
-or a b
-	| a == false = return b
-	| a == true || a == not b = return true
-	| b == false || a == b = return a
-	| otherwise = do
-		c <- literal
-		clause [not a, c]
-		clause [not b, c]
-		clause [a, b, not c]
-		return c
-
-and :: Literal -> Literal -> State Instance Literal
-and a b = liftM not (or (not a) (not b))
-
-leq :: Literal -> Literal -> State Instance Literal
-leq a = or (not a)
-
-equ :: Literal -> Literal -> State Instance Literal
-equ a b
-	| a == true = return b
-	| a == false = return (not b)
-	| b == true = return a
-	| b == false = return (not a)
-	| a == b = return true
-	| a == not b = return false
-	| otherwise = do
-		c <- literal
-		clause [a, b, c]
-		clause [a, not b, not c]
-		clause [not a, b, not c]
-		clause [not a, not b, c]
-		return c
-
-add :: Literal -> Literal -> State Instance Literal
-add a = equ (not a)
-
--- xor 1 1 is undefined
-xor :: Literal -> Literal -> State Instance Literal
-xor a b
-	| a == true && b == true = undefined
-	| a == false = return b
-	| b == false = return a
-	| a == not b = return true
-	| a == b = do
-		clause [- a]
-		return false
-	| otherwise = do
-		c <- literal
-		clause [a, b, not c]
-		clause [not a, c]
-		clause [not b, c]
-		clause [not a, not b]
-		return c
-
-assert :: Literal -> State Instance ()
-assert a = clause [a]
-
-assertequ :: Literal -> Literal -> State Instance ()
-assertequ a b = do
-	clause [a, not b]
-	clause [not a, b]
-	return ()
-
-assertleq :: Literal -> Literal -> State Instance ()
-assertleq a b = clause [not a, b]
+generate :: ([Literal] -> State Instance Literal) -> Int -> ([Int], Instance)
+generate f n =
+	let g = do
+		xs <- replicateM n literal
+		y <- f xs
+		clause [y]
+		return $ fmap getLiteral xs
+	in runState g (Instance 1 [[1]])
 
 literals :: Instance -> Int
-literals (MakeInst ls _) = ls
+literals (Instance ls _) = ls
 
 clauses :: Instance -> [[Int]]
-clauses (MakeInst _ cs) = cs
+clauses (Instance _ cs) = cs
 
 answer :: [Int] -> Int -> Bool
 answer as =
-	let	a = Set.fromList as
-		f x = let y = Set.member x a in Exception.assert (y || Set.member (-x ) a) y
-	in f
+	let a = Set.fromList $ filter (> 0) as
+	in (`Set.member` a)
 
-solve1 :: ([Literal], Instance) -> Maybe [Bool]
-solve1 (ls, i) = case Picosat.unsafeSolve (clauses i) of
-	Picosat.Solution as -> Just $ fmap (answer as) ls
+solve1 :: ([Int], Instance) -> Maybe [Bool]
+solve1 (xs, i) = case Picosat.unsafeSolve (clauses i) of
+	Picosat.Solution as -> Just $ fmap (answer as) xs
 	Picosat.Unsatisfiable -> Nothing
 	Picosat.Unknown -> error "picosat failed"
 
-solveOne :: Problem -> Maybe [Bool]
-solveOne p = solve1 $ runState p (MakeInst 1 [[1]])
+solveOne :: ([Literal] -> State Instance Literal) -> Int -> Maybe [Bool]
+solveOne f n =
+	let	(xs, i) = generate f n
+		m = "Solving SAT with " ++ show (literals i)
+			++ " literals and " ++ show (length $ clauses i)
+			++ " clauses."
+	in trace m $ solve1 (xs, i)
 
-condnot :: (Bool, Literal) -> Literal
-condnot (b, l) = if b then not l else l
+liftAdd :: (Bool, Int) -> Int
+liftAdd (x, y) = if x then negate y else y
 
-exclude :: Instance -> [Bool] -> [Literal] -> Instance
-exclude (MakeInst ls cs) bs xs = MakeInst ls ((fmap condnot $ zip bs xs) : cs)
+exclude :: Instance -> [Bool] -> [Int] -> Instance
+exclude (Instance ls cs) bs xs = Instance ls (fmap liftAdd (zip bs xs) : cs)
 
-solve2 :: ([Literal], Instance) -> [[Bool]]
-solve2 (ls, i) = case solve1 (ls, i) of
+solve2 :: ([Int], Instance) -> [[Bool]]
+solve2 (xs, i) = case solve1 (xs, i) of
 	Nothing -> []
-	Just bs -> bs : solve2 (ls, exclude i bs ls)
+	Just bs -> bs : solve2 (xs, exclude i bs xs)
 
-solveAll :: Problem -> [[Bool]]
-solveAll p = solve2 $ runState p (MakeInst 1 [[1]])
+solveAll :: ([Literal] -> State Instance Literal) -> Int -> [[Bool]]
+solveAll f n = solve2 $ generate f n
